@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1"
+    />
+    <title>Timeless</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=PT+Sans:wght@400;700&family=Roboto:ital,wght@1,400;1,500;1,700&family=Rubik:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="conf.css" />
+  </head>
+  <body>
+    <main>
+      <!-- Title & header of demo aplication. -->
+      <header class="company-detail">
+        <h3 class="company-name">Timeless</h3>
+        <h3 class="moto">Web Conferencing Application</h3>
+      </header>
+      <section class="container">
+        <!-- Other person's camera video will show up here -->
+        <div class="other-person-cam">
+          <video
+            style="width: 60vh; height: 45vh"
+            id="remoteVideo"
+            poster="DrawKit Vector Illustration Frosted Glass Computer Icons (1).png"
+            autoplay
+          ></video>
+          <h3>OTHER</h3>
+        </div>
+
+        <!-- Your camera video will show up here. -->
+        <div class="you-cam">
+          <video
+            style="width: 60vh; height: 45vh"
+            id="localVideo"
+            poster="DrawKit Vector Illustration Frosted Glass Computer Icons (1).png"
+            autoplay
+            muted
+          ></video>
+          <h3>YOU</h3>
+        </div>
+      </section>
+      <!-- Button to leave video conference. -->
+      <div class="box">
+        <button class="btn" id="leaveButton">END CALL</button>
+      </div>
+    </main>
+
+    <script type="text/javascript" src="conf.js?reloads=true"></script>
+  </body>
+</html>
