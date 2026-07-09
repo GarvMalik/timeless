@@ -27,7 +27,22 @@ export function isDisplayCaptureSupported() {
 // (not just a comment) and is belt-and-suspenders against any browser that
 // applies its own defaults here — echo cancellation tuned for silence
 // detection, or noise suppression, actively damages music/movie audio.
+//
+// IMPORTANT: this must never be passed directly as getDisplayMedia's `audio`
+// option. Unlike getUserMedia, browser support for detailed audio
+// constraints on getDisplayMedia is inconsistent — passing an object here
+// (rather than a plain `true`) can make the whole call throw or silently
+// fail instead of opening the share picker at all, in some browsers/
+// versions. Request `audio: true` (maximally compatible) and apply this
+// afterwards via track.applyConstraints — a non-destructive best-effort
+// refinement that can't break the capture if it's not supported.
 const CONTENT_AUDIO_CONSTRAINTS = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+
+function refineContentAudio(track) {
+  if (track && typeof track.applyConstraints === 'function') {
+    track.applyConstraints(CONTENT_AUDIO_CONSTRAINTS).catch(() => {}); // best-effort only
+  }
+}
 
 // Opus's default bitrate is tuned for speech (~24-32 kbps) — nowhere near
 // enough for music or a movie's soundtrack. This is the single highest-value,
@@ -89,7 +104,7 @@ export class ContentShare extends EventTarget {
     try {
       display = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: { ideal: 30, max: 60 }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: CONTENT_AUDIO_CONSTRAINTS,
+        audio: true,
       });
     } catch (e) {
       return; // user dismissed the picker — not an error worth surfacing
@@ -101,6 +116,7 @@ export class ContentShare extends EventTarget {
     videoTrack.onended = () => this._onCaptureEnded();
 
     const audioTrack = display.getAudioTracks()[0];
+    refineContentAudio(audioTrack);
     const outAudioTrack = audioTrack ? this._buildMixGraph(audioTrack) : this.room.localStream.getAudioTracks()[0];
 
     await this.room.replaceSenderTrack('video', videoTrack);
@@ -138,12 +154,13 @@ export class ContentShare extends EventTarget {
 
     let display;
     try {
-      display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: CONTENT_AUDIO_CONSTRAINTS });
+      display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
     } catch (e) {
       return;
     }
 
     const audioTrack = display.getAudioTracks()[0];
+    refineContentAudio(audioTrack);
     // a video track is required to open the picker, but Music Mode never
     // sends it — stop it immediately
     display.getVideoTracks().forEach((t) => t.stop());

@@ -1067,7 +1067,13 @@ img, video { display: block; max-width: 100%; }
 .room--live .ctrl__label { background: rgba(255, 255, 255, 0.95); color: #17130c; }
 .room--live .ctrl:disabled { opacity: 0.32; }
 .room--live .ctrl:disabled:hover { background: transparent; color: rgba(245, 242, 236, 0.86); }
-.room--live .ctrl--end { color: #fff; } /* stays the solid --red fill, just dropping the light-theme border-color rule */
+/* .room--live .ctrl's background: transparent has the same specificity as
+   .ctrl--end's own background: var(--red) (two classes vs one), and wins —
+   the Leave button was silently losing its entire red pill under the dark
+   toolbar, leaving bare white text with no background at all. Re-asserting
+   both background and :hover here, at matching specificity, fixes it. */
+.room--live .ctrl--end { background: var(--red); border-color: var(--red); color: #fff; }
+.room--live .ctrl--end:hover { background: #b81d24; border-color: #b81d24; color: #fff; }
 
 /* ---- mic waveform — the static glyph crossfades to a small live equalizer
    while you're actually speaking, layered on top of the glow ring shipped
