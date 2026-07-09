@@ -186,7 +186,7 @@ img, video { display: block; max-width: 100%; }
   padding: 0.6rem 1.2rem;
   border-radius: var(--r-pill);
   background: var(--green);
-  color: #fff;
+  color: #fff !important;
   transition: background var(--dur) var(--ease), transform 0.2s var(--ease);
 }
 .pill:hover { background: var(--green-600); transform: translateY(-2px); }
