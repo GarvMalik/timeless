@@ -12,14 +12,14 @@
     <meta name="referrer" content="no-referrer" />
     <script src="assets/guard.js"></script>
 
-    <title>timeless — room</title>
+    <title>Timeless — room</title>
     <meta name="description" content="Your Timeless meeting room." />
-    <meta name="theme-color" content="#e8e3d6" />
+    <meta name="theme-color" content="#fffcfa" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Mono:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Kalam:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/styles.css" />
@@ -28,7 +28,7 @@
     <div class="room">
       <div class="room__bar">
         <a class="room__mark" href="index.html">
-          <span class="bar__dot" aria-hidden="true"></span>timeless
+          <span class="bar__dot" aria-hidden="true"></span>Timeless
         </a>
         <div class="status" id="status" data-state="idle">
           <span class="status__dot" aria-hidden="true"></span>
@@ -39,16 +39,16 @@
       <!-- ===================== LOBBY ===================== -->
       <section class="lobby" id="lobby">
         <div class="card">
-          <span class="label card__eyebrow" id="lobbyEyebrow">the room / 00</span>
-          <h1 id="lobbyTitle">open a <span class="accent">room.</span></h1>
+          <span class="label card__eyebrow" id="lobbyEyebrow">The room · 00</span>
+          <h1 id="lobbyTitle">Open a <em>room.</em></h1>
           <p class="sub" id="lobbySub">
             Your browser hosts the room. Open it, copy the link, and send it to
             one other person — that link is the whole invitation.
           </p>
 
           <div id="hostActions">
-            <button class="btn" id="openBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <button class="btn btn--block" id="openBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               Open the room
@@ -70,13 +70,13 @@
                   placeholder="e.g. 7k3p9qa2df"
                 />
               </div>
-              <button class="btn btn--ghost" type="submit">Join the room</button>
+              <button class="btn btn--ghost btn--block" type="submit">Join the room</button>
             </form>
           </div>
 
           <div id="guestActions" hidden>
-            <button class="btn" id="enterBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <button class="btn btn--block" id="enterBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               Enter the room
@@ -97,7 +97,7 @@
         <div class="tile">
           <video id="remoteVideo" autoplay playsinline></video>
           <div class="tile__wait" id="remoteWait">
-            <span class="g">an empty room</span>
+            <span class="gt">An empty room</span>
             <p id="remoteWaitText">Waiting for someone to open your link…</p>
           </div>
           <span class="tile__tag">Them</span>

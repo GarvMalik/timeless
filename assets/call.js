@@ -431,11 +431,10 @@
   // lobby wiring
   // =========================================================================
   function configureGuestLobby(code) {
-    lobbyEyebrow.textContent = 'the room / invited';
+    lobbyEyebrow.textContent = 'The room · invited';
     // built from nodes (no innerHTML) to keep the XSS surface at zero
-    lobbyTitle.textContent = "you're ";
-    var em = document.createElement('span');
-    em.className = 'accent';
+    lobbyTitle.textContent = "You're ";
+    var em = document.createElement('em');
     em.textContent = 'invited.';
     lobbyTitle.appendChild(em);
     lobbySub.textContent =

@@ -37,10 +37,11 @@ SECURITY.md     → threat model + hardening (CSP, self-hosted code, etc.)
 
 ## Design
 
-Two typefaces, no more: **Syne** (display) and **Space Mono** (everything
-else). Warm paper, near-black ink, one clay accent, hairline grids, and a single
-dark inverted band. Every colour, size, and timing is a token in `:root` — see
-[`DESIGN.md`](DESIGN.md).
+Visual identity modelled on [The Climate Pledge](https://www.theclimatepledge.com):
+warm off-white, a signature green, soft pastel colour-blocks, generous rounding,
+and big high-contrast serif headlines. Type: **Instrument Serif** (display),
+**Space Grotesk** (body/UI), and **Kalam** for the hand-drawn accents. Every
+colour, size, and timing is a token in `:root` — see [`DESIGN.md`](DESIGN.md).
 
 ## Using it
 
@@ -82,5 +83,4 @@ It's already set up for **GitHub Pages** — enable Pages on the `main` branch
 
 ---
 
-Built with WebRTC + PeerJS. Design inspired by the restraint of studio sites
-like bymonolog and The Line Studio.
+Built with WebRTC + PeerJS. Visual identity inspired by The Climate Pledge.

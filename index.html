@@ -12,20 +12,20 @@
     <meta name="referrer" content="no-referrer" />
     <script src="assets/guard.js"></script>
 
-    <title>timeless — conversations, unhurried</title>
+    <title>Timeless — conversations, unhurried</title>
     <meta
       name="description"
       content="A quiet, peer-to-peer meeting room. Two people, one link — video and screen sharing drawn directly between browsers. No accounts, no downloads."
     />
-    <meta name="theme-color" content="#e8e3d6" />
-    <meta property="og:title" content="timeless — conversations, unhurried" />
+    <meta name="theme-color" content="#fffcfa" />
+    <meta property="og:title" content="Timeless — conversations, unhurried" />
     <meta property="og:description" content="Peer-to-peer video & screen sharing that opens with a single link. No accounts." />
     <meta property="og:type" content="website" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Mono:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Kalam:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/styles.css" />
@@ -33,10 +33,10 @@
   <body>
     <header class="bar">
       <a class="bar__mark" href="index.html">
-        <span class="bar__dot" aria-hidden="true"></span>timeless
+        <span class="bar__dot" aria-hidden="true"></span>Timeless
       </a>
       <nav class="bar__nav">
-        <a href="#how" class="bar__link">Method</a>
+        <a href="#how" class="bar__link">How it works</a>
         <a href="#features" class="bar__link">Details</a>
         <a class="pill" href="call.html">Open a room</a>
       </nav>
@@ -44,51 +44,44 @@
 
     <!-- ===================== HERO ===================== -->
     <section class="hero">
-      <div class="hero__top">
-        <span class="label">[ web conferencing / quieted ]</span>
-        <p class="hero__index">
-          A peer-to-peer meeting room. Two people, one link, no accounts — the
-          connection is drawn directly between your browsers.
-        </p>
-      </div>
-
+      <span class="label hero__label">A peer-to-peer meeting room</span>
       <h1 class="display" data-reveal>
-        meet<br />
-        <span class="out">without</span> the<br />
-        <span class="accent">clutter.</span>
+        Meet without<br />
+        the clutter,<br />
+        <em>face to</em> <span class="hand">face.</span>
       </h1>
 
       <p class="hero__lede" data-reveal>
         Timeless strips the meeting back to what matters — a face, a screen, a
-        conversation. Nothing to download. Nothing to sign up for.
+        conversation. One link, no accounts, nothing to download.
       </p>
 
-      <!-- primary calls to action — the loudest thing on the page -->
+      <!-- primary calls to action — the focus of the page -->
       <div class="actions" data-reveal>
-        <a class="action" href="call.html?mode=camera">
-          <span class="action__no">01 / video</span>
+        <a class="action action--mint" href="call.html?mode=camera">
+          <span class="action__no">01 · Video call</span>
           <div class="action__row">
             <span>
-              <span class="action__name">start a call</span>
-              <span class="action__meta">open a room · share the link</span>
+              <span class="action__name">Start a call</span>
+              <span class="action__meta">Open a room, share the link</span>
             </span>
             <span class="action__arrow" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </span>
           </div>
         </a>
 
-        <a class="action" href="call.html?mode=screen">
-          <span class="action__no">02 / screen</span>
+        <a class="action action--sky" href="call.html?mode=screen">
+          <span class="action__no">02 · Screen share</span>
           <div class="action__row">
             <span>
-              <span class="action__name">share a screen</span>
-              <span class="action__meta">present, then swap back</span>
+              <span class="action__name">Share a screen</span>
+              <span class="action__meta">Present, then swap back</span>
             </span>
             <span class="action__arrow" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </span>
@@ -97,32 +90,32 @@
       </div>
     </section>
 
-    <!-- ===================== SIGNALS (static) ===================== -->
-    <div class="signals" aria-label="Principles">
-      <div class="signal"><span class="signal__no">/ 01</span><span class="signal__word">peer&nbsp;to&nbsp;peer</span></div>
-      <div class="signal"><span class="signal__no">/ 02</span><span class="signal__word">no&nbsp;accounts</span></div>
-      <div class="signal"><span class="signal__no">/ 03</span><span class="signal__word">end&nbsp;to&nbsp;end</span></div>
-      <div class="signal"><span class="signal__no">/ 04</span><span class="signal__word">one&nbsp;link</span></div>
+    <!-- ===================== PRINCIPLES ===================== -->
+    <div class="principles" aria-label="Principles">
+      <span class="chip chip--mint"><b>01</b> peer to peer</span>
+      <span class="chip chip--sky"><b>02</b> no accounts</span>
+      <span class="chip chip--peach"><b>03</b> end to end</span>
+      <span class="chip chip--lilac"><b>04</b> one link</span>
     </div>
 
-    <!-- ===================== METHOD ===================== -->
+    <!-- ===================== HOW ===================== -->
     <section class="section" id="how">
       <div class="section__head" data-reveal>
-        <span class="label">the method / 01</span>
-        <h2 class="section__title">three moves and you're <span class="accent">in the room.</span></h2>
+        <span class="label">How it works · 01</span>
+        <h2 class="section__title">Three moves and you're <em>in the room.</em></h2>
       </div>
       <div class="steps">
-        <div class="step" data-reveal>
-          <span class="step__num">01</span>
-          <div><h3>open a room</h3><p>Click once. Your browser becomes the host — no server sits between you.</p></div>
+        <div class="block block--sky" data-reveal>
+          <span class="block__num">01</span>
+          <div><h3>Open a room</h3><p>Click once. Your browser becomes the host — no server sits between you.</p></div>
         </div>
-        <div class="step" data-reveal>
-          <span class="step__num">02</span>
-          <div><h3>pass the link</h3><p>Copy the invite and send it however you like. That link is the whole invitation.</p></div>
+        <div class="block block--mint" data-reveal>
+          <span class="block__num">02</span>
+          <div><h3>Pass the link</h3><p>Copy the invite and send it however you like. That link is the whole invitation.</p></div>
         </div>
-        <div class="step" data-reveal>
-          <span class="step__num">03</span>
-          <div><h3>talk</h3><p>They open it, the connection draws itself, and you're face to face. That's all of it.</p></div>
+        <div class="block block--peach" data-reveal>
+          <span class="block__num">03</span>
+          <div><h3>Talk</h3><p>They open it, the connection draws itself, and you're face to face. That's all of it.</p></div>
         </div>
       </div>
     </section>
@@ -130,50 +123,54 @@
     <!-- ===================== DETAILS ===================== -->
     <section class="section" id="features">
       <div class="section__head" data-reveal>
-        <span class="label">the details / 02</span>
-        <h2 class="section__title">quiet by <span class="accent">design.</span></h2>
+        <span class="label">The details · 02</span>
+        <h2 class="section__title">Quiet by <span class="uline"><em>design.</em><svg viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true"><path d="M4 8 C 60 2, 120 12, 180 6 S 260 2, 296 7" /></svg></span></h2>
       </div>
       <div class="feats">
         <div class="feat" data-reveal>
-          <span class="feat__no">/ 01</span>
-          <span class="feat__name">peer to peer</span>
+          <span class="feat__no">01</span>
+          <span class="feat__name">Peer to peer</span>
           <span class="feat__desc">Video travels straight between browsers over WebRTC. No middle-man recording the room.</span>
         </div>
         <div class="feat" data-reveal>
-          <span class="feat__no">/ 02</span>
-          <span class="feat__name">no accounts</span>
+          <span class="feat__no">02</span>
+          <span class="feat__name">No accounts</span>
           <span class="feat__desc">Nothing to install, no email, no password. A link is the only credential.</span>
         </div>
         <div class="feat" data-reveal>
-          <span class="feat__no">/ 03</span>
-          <span class="feat__name">share the screen</span>
+          <span class="feat__no">03</span>
+          <span class="feat__name">Share the screen</span>
           <span class="feat__desc">Swap your camera for your desktop mid-call with a single tap, then swap back.</span>
         </div>
         <div class="feat" data-reveal>
-          <span class="feat__no">/ 04</span>
-          <span class="feat__name">hardened</span>
+          <span class="feat__no">04</span>
+          <span class="feat__name">Hardened</span>
           <span class="feat__desc">Strict content-security-policy, self-hosted code, validated room codes. See SECURITY.md.</span>
         </div>
       </div>
     </section>
 
-    <!-- ===================== STATEMENT (dark) ===================== -->
-    <section class="statement" data-reveal>
-      <span class="label statement__label">[ the idea ]</span>
-      <p>the best meeting tool is the one you <em>stop noticing.</em></p>
-    </section>
+    <!-- ===================== STATEMENT (green block) ===================== -->
+    <div class="statement-wrap" data-reveal>
+      <section class="statement">
+        <span class="label statement__label">The idea</span>
+        <p>The best meeting tool is the one you <span class="hand">stop noticing.</span></p>
+      </section>
+    </div>
 
     <!-- ===================== FOOTER ===================== -->
     <footer class="foot">
-      <div class="foot__big" data-reveal>open a<br />room.</div>
-      <div class="foot__meta">
-        <a href="call.html?mode=camera">start a call →</a>
-        <a href="call.html?mode=screen">share a screen →</a>
-        <a href="https://github.com/GarvMalik/timeless" rel="noopener noreferrer">source on github →</a>
+      <div class="foot__grid">
+        <div class="foot__big" data-reveal>Open a<br /><em>room.</em></div>
+        <div class="foot__meta">
+          <a href="call.html?mode=camera">Start a call →</a>
+          <a href="call.html?mode=screen">Share a screen →</a>
+          <a href="https://github.com/GarvMalik/timeless" rel="noopener noreferrer">Source on GitHub →</a>
+        </div>
       </div>
       <div class="foot__row">
-        <span>timeless — a peer-to-peer meeting room</span>
-        <span>webrtc · peerjs</span>
+        <span>Timeless — a peer-to-peer meeting room</span>
+        <span>WebRTC · PeerJS</span>
         <span>© <span id="year"></span></span>
       </div>
     </footer>

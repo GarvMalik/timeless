@@ -1,92 +1,87 @@
 # Timeless — Design System
 
-A small, strict system so the whole site stays consistent. Everything below is
-encoded as CSS custom properties in `assets/styles.css` (`:root`). **Never
-hardcode a colour, size, or timing** — reach for a token.
-
-Concept: **a technical dossier that happens to be beautiful.** Monospace body,
-an avant-garde display face, hairline grids, numbered everything, one dark
-inverted band for contrast, one warm accent used sparingly. Deliberately *not*
-the soft, centered, rounded look of a default app UI.
+Visual identity modelled on **The Climate Pledge** (theclimatepledge.com):
+warm optimistic off-white, a signature green, soft pastel colour-blocks, big
+high-contrast **serif** headlines mixed with a clean **grotesk**, a hand-drawn
+script accent, and generously rounded corners. Everything is a token in
+`:root` (`assets/styles.css`) — **never hardcode a value.**
 
 ---
 
-## 1. Type — exactly two families
+## 1. Type — three roles, close free analogues of the brand fonts
 
-| Role | Family | Token | Weights |
-|------|--------|-------|---------|
-| Display / headings | **Syne** (geometric, avant-garde) | `--display` | 600, 700, 800 |
-| Everything else / body / UI | **Space Mono** (monospace) | `--mono` | 400, 700 |
+| Role | The Climate Pledge uses | We use (free) | Token |
+|------|------------------------|---------------|-------|
+| Display / headings | **Editorial New** (high-contrast serif) | **Instrument Serif** | `--serif` |
+| Body / UI | **ClimatePledgeSans / Trio Grotesk** | **Space Grotesk** | `--sans` |
+| Hand-drawn accent | **Kalam** | **Kalam** (exact) | `--hand` |
 
-No third font. Ever. Body is monospace on purpose — it reads like a spec sheet
-and reinforces the "secure / technical" idea.
+- Headlines are large, roman **mixed with italic** (`.serif em`), lowercase or
+  sentence case — never all-caps.
+- One word per headline may get the **Kalam** treatment (green) with a
+  hand-drawn underline — the signature "human" touch. Use sparingly (once/page).
+- Body is Space Grotesk, 400/500.
 
-**Fluid scale** (`clamp()`), token → use:
-
+**Fluid scale**
 ```
---fs-hero    clamp(3.2rem, 13vw, 12rem)   the one giant headline
---fs-xl      clamp(2rem, 5.5vw, 4.2rem)    section titles, dark statement
---fs-lg      clamp(1.5rem, 3vw, 2.4rem)    card titles, feature names
---fs-md      1.25rem                        sub-headings
---fs-body    0.95rem                        paragraphs (mono)
---fs-sm      0.8125rem                      secondary UI
---fs-label   0.6875rem                      uppercase tracked micro-labels
+--fs-hero  clamp(3rem, 11vw, 10rem)      the one giant serif headline
+--fs-xl    clamp(2.2rem, 5.5vw, 4.5rem)  section titles, statement
+--fs-lg    clamp(1.6rem, 3vw, 2.6rem)    card titles
+--fs-md    1.25rem                        sub-headings
+--fs-body  1.0625rem                      paragraphs
+--fs-sm    0.875rem                       secondary UI
+--fs-label 0.75rem                        tracked micro-labels (grotesk)
 ```
-
-Labels: `--fs-label`, uppercase, `letter-spacing: 0.18em`, `--ink-45`.
 
 ## 2. Colour
 
 ```
---paper      #e8e3d6   page background (warm bone)
---surface    #f1ecdf   raised cells / cards
---ink        #141109   near-black warm ink (text)
---ink-70 / --ink-45    muted ink for secondary / tertiary text
---line       rgba(20,17,9,.20)   hairline borders (structure)
---line-soft  rgba(20,17,9,.09)
---accent     #bf4a25   clay-orange — used ONLY for: the live dot, one word in
-                        the statement, hover ink, focus rings. Never for big fills.
---inverse    #141109   the single dark band's background
---inverse-ink #e8e3d6  text on the dark band
+--bg      #fffcfa   warm white page background
+--surface #f7f5f2   raised neutral panels
+--ink     #312f2d   primary charcoal text
+--ink-2   #666464   secondary text
+--line    rgba(49,47,45,.14)
+
+Brand green (primary / CTAs / "live"):
+--green   #1b945a   --green-600 #157a49 (hover)  --green-bright #3dcc68
+
+Pastel colour-blocks (section & card backgrounds):
+--mint    #c4f0d0   --sky #cbe2f9   --peach #f4e2d6   --lilac #eddfeb
+
+Punch accents (use sparingly, non-body):
+--red #e1252e   --blue #00b3ff
 ```
 
-Contrast: ink on paper ≈ 14:1, ink-70 on paper ≈ 6:1 — both pass WCAG AA.
+Rule: **pastels are backgrounds, green is the action, red is a rare punch.**
+Charcoal text sits on white and on every pastel (all pass AA for large text).
 
-## 3. Space & layout
+## 3. Shape & space
 
-- Page gutter: `--edge` = `clamp(1.25rem, 4vw, 4.5rem)`.
-- Spacing steps: `--s1 .5rem`, `--s2 1rem`, `--s3 1.5rem`, `--s4 2.5rem`,
-  `--s5 4rem`, `--s6 6rem`.
-- **Grid is visible.** Structure is drawn with 1px `--line` borders, not shadows.
-- **Sharp corners** everywhere (`--radius: 0`). The only round things are the
-  status dot and the status pill — nothing else.
-- Asymmetric section heads: a narrow label column + a wide title column.
+- Rounding is the signature: `--r-pill 100px` (buttons/chips),
+  `--r-lg 28px` (cards/blocks), `--r-md 18px`, `--r-sm 12px`, `50%` (circles).
+- **No hard hairline dossier grid** — structure comes from soft rounded
+  colour-blocks with air between them.
+- Page gutter `--edge` = `clamp(1.25rem, 4vw, 5rem)`.
+- Space steps `--s1…--s6` (`.5rem` → `6rem`).
 
 ## 4. Motion
 
-```
---ease  cubic-bezier(.22, 1, .36, 1)
---dur   .55s
-```
-
-- Reveal-on-scroll: fade + 24px rise, staggered.
-- Hover: blocks invert (paper↔ink) or nudge; no bounce, no scale-up on text.
-- All motion is disabled under `prefers-reduced-motion`.
+`--ease cubic-bezier(.22,1,.36,1)`, `--dur .5s`. Reveal-on-scroll (fade + rise),
+buttons lift/darken on hover, arrows nudge. Disabled under
+`prefers-reduced-motion`.
 
 ## 5. Components
 
-- **`.action`** — the primary CTA block. Large, bordered, numbered, arrow;
-  inverts to ink on hover. This is the loudest thing on the page by design.
-- **`.signals`** — static labelled band (replaces the old moving marquee). A row
-  of numbered keyword cells divided by hairlines. No animation.
-- **`.step` / `.feat`** — dossier rows: number + name + description on a grid.
-- **`.statement`** — the one inverted (dark) band.
-- **Room**: `.action`-consistent buttons, hairline tiles, circular controls,
-  pill status. Same tokens as the marketing pages.
+- **`.btn`** — pill. Primary = green fill / white; ghost = charcoal outline.
+- **`.action`** — the two hero CTAs: large rounded pastel cards (mint / sky)
+  with a serif title and a circular arrow. The focal point of the page.
+- **`.block`** — a rounded pastel section card (method steps, principles).
+- **`.statement`** — one full **green** rounded block, white serif.
+- **`.hand`** — Kalam accent; **`.uline`** — the hand-drawn SVG squiggle
+  underline (best on mid-size headings, not the giant hero — the em scales up).
+- **Room** — rounded video tiles, pill controls, green live status, same tokens.
 
 ## 6. Accessibility & security are part of the system
 
-- Focus-visible ring on every interactive element (`--accent`, 2px offset).
-- All motion respects `prefers-reduced-motion`.
-- Strict Content-Security-Policy, self-hosted scripts, validated room codes —
-  see `SECURITY.md`.
+Focus-visible green ring everywhere; motion respects reduced-motion; strict CSP,
+self-hosted scripts, validated room codes — see `SECURITY.md`.
