@@ -72,12 +72,40 @@
   // =========================================================================
   // helpers
   // =========================================================================
+  // Room codes double as PeerJS ids. Anyone who knows the code can reach the
+  // host, so make them long enough to be unguessable (10 chars from a 31-char
+  // alphabet ≈ 8.2e14 combos) and draw from a CSPRNG, never Math.random().
+  var CODE_ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789';
+  var CODE_LEN = 10;
+
+  // Explicit, secure signalling config — pinned so it always uses wss:// and
+  // matches the Content-Security-Policy connect-src. The broker only relays
+  // connection setup; audio/video never touch it (that's peer-to-peer).
+  var PEER_OPTS = {
+    host: '0.peerjs.com',
+    port: 443,
+    secure: true,
+    config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] },
+  };
+
   function makeCode() {
-    // 6 lowercase alphanumerics — readable, valid PeerJS id
-    var abc = 'abcdefghijkmnpqrstuvwxyz23456789';
-    var s = '';
-    for (var i = 0; i < 6; i++) s += abc[Math.floor(Math.random() * abc.length)];
-    return s;
+    var out = '';
+    var n = CODE_ALPHABET.length;
+    if (window.crypto && window.crypto.getRandomValues) {
+      var buf = new Uint32Array(CODE_LEN);
+      window.crypto.getRandomValues(buf);
+      for (var i = 0; i < CODE_LEN; i++) out += CODE_ALPHABET[buf[i] % n];
+    } else {
+      for (var j = 0; j < CODE_LEN; j++) out += CODE_ALPHABET[Math.floor(Math.random() * n)];
+    }
+    return out;
+  }
+
+  // Strict allow-list: only ever accept short lowercase-alphanumeric codes.
+  // This is the trust boundary for anything derived from the URL or a text
+  // field before it is handed to PeerJS or written into a link.
+  function isValidCode(c) {
+    return typeof c === 'string' && /^[a-z0-9]{4,40}$/.test(c);
   }
 
   function inviteUrl(code) {
@@ -322,7 +350,7 @@
   function openAsHost() {
     isHost = true;
     roomCode = makeCode();
-    peer = new Peer(roomCode);
+    peer = new Peer(roomCode, PEER_OPTS);
 
     peer.on('open', function (id) {
       roomCode = id;
@@ -355,7 +383,7 @@
   function joinAsGuest(code) {
     isHost = false;
     roomCode = code;
-    peer = new Peer();
+    peer = new Peer(undefined, PEER_OPTS);
 
     setStatus('waiting', 'Connecting…');
     remoteWaitText.textContent = 'Connecting to the room…';
@@ -403,8 +431,13 @@
   // lobby wiring
   // =========================================================================
   function configureGuestLobby(code) {
-    lobbyEyebrow.textContent = 'The room · invited';
-    lobbyTitle.innerHTML = "You're <em>invited.</em>";
+    lobbyEyebrow.textContent = 'the room / invited';
+    // built from nodes (no innerHTML) to keep the XSS surface at zero
+    lobbyTitle.textContent = "you're ";
+    var em = document.createElement('span');
+    em.className = 'accent';
+    em.textContent = 'invited.';
+    lobbyTitle.appendChild(em);
     lobbySub.textContent =
       'Someone opened a Timeless room and shared it with you. Enter to join — ' +
       "we'll ask for your camera and microphone first.";
@@ -430,6 +463,10 @@
     var code = (codeInput.value || '').trim().toLowerCase();
     if (!code) {
       notice('Enter a room code to join.');
+      return;
+    }
+    if (!isValidCode(code)) {
+      notice('That room code doesn’t look right — codes are letters and numbers only.');
       return;
     }
     notice(null);
@@ -488,7 +525,13 @@
   if (typeof Peer === 'undefined') {
     notice('Could not load the connection library. Check your network and reload.');
   } else if (joinCode) {
-    configureGuestLobby(joinCode);
+    if (isValidCode(joinCode)) {
+      configureGuestLobby(joinCode);
+    } else {
+      // a malformed ?room= value never reaches PeerJS — fall back to hosting
+      joinCode = '';
+      notice('That invite link looks malformed. You can open a fresh room instead.');
+    }
   }
   // host lobby is the default markup — nothing to do
 })();

@@ -3,24 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Timeless — room</title>
+
+    <!-- security: self-hosted script only, media allowed, peerjs broker allowed -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob: mediastream:; connect-src 'self' wss://0.peerjs.com https://0.peerjs.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <script src="assets/guard.js"></script>
+
+    <title>timeless — room</title>
     <meta name="description" content="Your Timeless meeting room." />
-    <meta name="theme-color" content="#ece7dc" />
+    <meta name="theme-color" content="#e8e3d6" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,200..500;1,9..144,200..400&family=Inter:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/styles.css" />
   </head>
   <body>
     <div class="room">
-      <!-- top bar -->
       <div class="room__bar">
         <a class="room__mark" href="index.html">
-          <span class="bar__dot" aria-hidden="true"></span>Timeless
+          <span class="bar__dot" aria-hidden="true"></span>timeless
         </a>
         <div class="status" id="status" data-state="idle">
           <span class="status__dot" aria-hidden="true"></span>
@@ -31,14 +39,13 @@
       <!-- ===================== LOBBY ===================== -->
       <section class="lobby" id="lobby">
         <div class="card">
-          <span class="label card__eyebrow" id="lobbyEyebrow">The room · 00</span>
-          <h1 id="lobbyTitle">Open a <em>room.</em></h1>
+          <span class="label card__eyebrow" id="lobbyEyebrow">the room / 00</span>
+          <h1 id="lobbyTitle">open a <span class="accent">room.</span></h1>
           <p class="sub" id="lobbySub">
             Your browser hosts the room. Open it, copy the link, and send it to
             one other person — that link is the whole invitation.
           </p>
 
-          <!-- host actions -->
           <div id="hostActions">
             <button class="btn" id="openBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -49,22 +56,24 @@
 
             <div class="divide">or</div>
 
-            <form id="joinForm">
+            <form id="joinForm" autocomplete="off">
               <div class="field">
                 <label class="label" for="codeInput">Join with a room code</label>
                 <input
                   id="codeInput"
                   type="text"
+                  inputmode="latin"
                   autocomplete="off"
                   spellcheck="false"
-                  placeholder="e.g. 7k3p9q"
+                  maxlength="40"
+                  pattern="[A-Za-z0-9]+"
+                  placeholder="e.g. 7k3p9qa2df"
                 />
               </div>
               <button class="btn btn--ghost" type="submit">Join the room</button>
             </form>
           </div>
 
-          <!-- guest action -->
           <div id="guestActions" hidden>
             <button class="btn" id="enterBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -143,13 +152,11 @@
           Leave
         </button>
       </div>
-
-      <!-- host invite bar (inside stage flow, appears under lobby too via JS) -->
     </div>
 
     <div class="toast" id="toast"></div>
 
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="assets/vendor/peerjs-1.5.4.min.js"></script>
     <script src="assets/call.js"></script>
   </body>
 </html>

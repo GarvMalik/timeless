@@ -15,7 +15,9 @@ Timeless is a static site. All the meeting logic runs in the browser:
 - **Media & transport** — [WebRTC](https://webrtc.org/) carries audio and video
   peer-to-peer between the two participants.
 - **Signalling** — handled by the free public [PeerJS](https://peerjs.com/)
-  cloud broker, so there's no backend to host or pay for.
+  cloud broker, so there's no backend to host or pay for. The PeerJS library
+  itself is **self-hosted** (`assets/vendor/`), so no third-party script runs on
+  the page — see [`SECURITY.md`](SECURITY.md).
 - **Rooms** — the host's browser owns a short room code (its PeerJS id). The
   guest opens `call.html?room=CODE` and connects straight to the host. A single
   connection carries both directions.
@@ -24,10 +26,21 @@ Timeless is a static site. All the meeting logic runs in the browser:
 index.html      → landing page
 call.html       → the meeting room (lobby + live call)
 assets/
-  styles.css    → the whole design system
+  styles.css    → the design system, in CSS custom properties
   site.js       → landing reveal animations
   call.js       → PeerJS / WebRTC call logic
+  guard.js      → early anti-clickjacking guard
+  vendor/       → self-hosted PeerJS (no third-party CDN at runtime)
+DESIGN.md       → the design system: type, colour, space, motion, components
+SECURITY.md     → threat model + hardening (CSP, self-hosted code, etc.)
 ```
+
+## Design
+
+Two typefaces, no more: **Syne** (display) and **Space Mono** (everything
+else). Warm paper, near-black ink, one clay accent, hairline grids, and a single
+dark inverted band. Every colour, size, and timing is a token in `:root` — see
+[`DESIGN.md`](DESIGN.md).
 
 ## Using it
 
