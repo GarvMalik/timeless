@@ -1,42 +1,179 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Timeless — conversations, unhurried</title>
     <meta
-      name="viewport"
-      content="width=device-width,initial-scale=1,maximum-scale=1"
+      name="description"
+      content="Timeless is a quiet place to meet. Peer-to-peer video and screen sharing that opens with a single link — no accounts, no downloads, nothing to install."
     />
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=PT+Serif&display=swap');
-    </style>
-    <link rel="stylesheet" href="style.css" />
-    <title>Timeless</title>
+    <meta name="theme-color" content="#ece7dc" />
+    <meta property="og:title" content="Timeless — conversations, unhurried" />
+    <meta
+      property="og:description"
+      content="Peer-to-peer video and screen sharing that opens with a single link. No accounts, no downloads."
+    />
+    <meta property="og:type" content="website" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,200..500;1,9..144,200..400&family=Inter:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
   </head>
   <body>
-    <div>
-      <img
-        style="float: left; width: auto; height: 100px"
-        src="Screen Shot 2021-10-06 at 3.45.43 PM.png"
-      />
-      <div id="Company-name" "position: relative; left: 10px" >
-        <h3 style="margin: 0%; font-size: 25px; font-weight: bold;">
-        Timeless
-      </h3>
-      <h3 style="margin: 0%;">Web Conferencing Application</h3>
-    </div>
-     
-      </h3>
-    </div>
-    <div class="container">
-      <br />
-      <br />
+    <!-- top bar -->
+    <header class="bar">
+      <a class="bar__mark" href="index.html">
+        <span class="bar__dot" aria-hidden="true"></span>Timeless
+      </a>
+      <nav class="bar__nav">
+        <a href="#how" class="bar__link">Method</a>
+        <a href="#features" class="bar__link">Details</a>
+        <a class="pill" href="call.html">Open a room</a>
+      </nav>
+    </header>
 
-      <a class="btn-2 button" href="conf.html">Join Video Conference</a>
-      <br />
-      <br />
-      <a class="btn-2 button" href="screenshare.html">Share your screen</a>
+    <!-- hero -->
+    <section class="hero">
+      <div class="hero__top">
+        <span class="label">Web conferencing, quieted</span>
+        <p class="hero__index">
+          A peer-to-peer meeting room. Two people, one link, no accounts —
+          the connection is drawn directly between your browsers.
+        </p>
+      </div>
+
+      <h1 class="display" data-reveal>
+        Meet<br />
+        <em>without</em> the<br />
+        <span class="thin">clutter.</span>
+      </h1>
+
+      <div class="hero__foot">
+        <p class="hero__lede" data-reveal>
+          Timeless strips the meeting back to what matters — a face, a screen, a
+          conversation. Nothing to download. Nothing to sign up for.
+        </p>
+        <div class="cta-row" data-reveal>
+          <a class="cta" href="call.html?mode=camera">
+            Start a call
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+          <a class="cta" href="call.html?mode=screen">
+            Share a screen
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- marquee -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">
+        <span>peer&nbsp;to&nbsp;peer</span><span>no&nbsp;accounts</span
+        ><span>end&nbsp;to&nbsp;end</span><span>one&nbsp;link</span
+        ><span>face&nbsp;to&nbsp;face</span><span>screen&nbsp;sharing</span
+        ><span>peer&nbsp;to&nbsp;peer</span><span>no&nbsp;accounts</span
+        ><span>end&nbsp;to&nbsp;end</span><span>one&nbsp;link</span
+        ><span>face&nbsp;to&nbsp;face</span><span>screen&nbsp;sharing</span>
+      </div>
     </div>
 
-    <!-- <footer>
-      <p id="copyright">Copyright &copy; 2027 by The Code Magazine.</p>
-    </footer> -->
+    <!-- how -->
+    <section class="section" id="how">
+      <div class="section__head" data-reveal>
+        <span class="label">The method · 01</span>
+        <h2 class="section__title">
+          Three moves and you're <em>in the room.</em>
+        </h2>
+      </div>
+
+      <div class="steps">
+        <div class="step" data-reveal>
+          <span class="step__num">01</span>
+          <div>
+            <h3>Open a room</h3>
+            <p>Click once. Your browser becomes the host — no server sits between you.</p>
+          </div>
+        </div>
+        <div class="step" data-reveal>
+          <span class="step__num">02</span>
+          <div>
+            <h3>Pass the link</h3>
+            <p>Copy the invite and send it however you like. That link is the whole invitation.</p>
+          </div>
+        </div>
+        <div class="step" data-reveal>
+          <span class="step__num">03</span>
+          <div>
+            <h3>Talk</h3>
+            <p>They open it, the connection draws itself, and you're face to face. That's all of it.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- features -->
+    <section class="section" id="features">
+      <div class="section__head" data-reveal>
+        <span class="label">The details · 02</span>
+        <h2 class="section__title">Quiet by <em>design.</em></h2>
+      </div>
+
+      <div class="feats">
+        <div class="feat" data-reveal>
+          <span class="feat__no">01</span>
+          <span class="feat__name">Peer to peer</span>
+          <span class="feat__desc">Video travels straight between browsers over WebRTC. No middle-man recording the room.</span>
+        </div>
+        <div class="feat" data-reveal>
+          <span class="feat__no">02</span>
+          <span class="feat__name">No accounts</span>
+          <span class="feat__desc">Nothing to install, no email, no password. A link is the only credential.</span>
+        </div>
+        <div class="feat" data-reveal>
+          <span class="feat__no">03</span>
+          <span class="feat__name">Share the screen</span>
+          <span class="feat__desc">Swap your camera for your desktop mid-call with a single tap, then swap back.</span>
+        </div>
+        <div class="feat" data-reveal>
+          <span class="feat__no">04</span>
+          <span class="feat__name">Runs anywhere</span>
+          <span class="feat__desc">A static page on GitHub Pages. It loads instantly and works on any modern browser.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- statement -->
+    <section class="statement" data-reveal>
+      <p>
+        The best meeting tool is the one you <em>stop noticing.</em>
+      </p>
+    </section>
+
+    <!-- footer -->
+    <footer class="foot">
+      <div class="foot__big" data-reveal>Open a<br />room.</div>
+      <div class="foot__meta">
+        <a href="call.html?mode=camera">Start a call →</a>
+        <a href="call.html?mode=screen">Share a screen →</a>
+        <a href="https://github.com/GarvMalik/timeless">Source on GitHub →</a>
+      </div>
+      <div class="foot__row">
+        <span>Timeless — a peer-to-peer meeting room</span>
+        <span>Built with WebRTC · PeerJS</span>
+        <span>© <span id="year"></span></span>
+      </div>
+    </footer>
+
+    <script src="assets/site.js"></script>
   </body>
 </html>

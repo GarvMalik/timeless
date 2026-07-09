@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Timeless — room</title>
+    <meta name="description" content="Your Timeless meeting room." />
+    <meta name="theme-color" content="#ece7dc" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,200..500;1,9..144,200..400&family=Inter:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <div class="room">
+      <!-- top bar -->
+      <div class="room__bar">
+        <a class="room__mark" href="index.html">
+          <span class="bar__dot" aria-hidden="true"></span>Timeless
+        </a>
+        <div class="status" id="status" data-state="idle">
+          <span class="status__dot" aria-hidden="true"></span>
+          <span id="statusText">Not connected</span>
+        </div>
+      </div>
+
+      <!-- ===================== LOBBY ===================== -->
+      <section class="lobby" id="lobby">
+        <div class="card">
+          <span class="label card__eyebrow" id="lobbyEyebrow">The room · 00</span>
+          <h1 id="lobbyTitle">Open a <em>room.</em></h1>
+          <p class="sub" id="lobbySub">
+            Your browser hosts the room. Open it, copy the link, and send it to
+            one other person — that link is the whole invitation.
+          </p>
+
+          <!-- host actions -->
+          <div id="hostActions">
+            <button class="btn" id="openBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Open the room
+            </button>
+
+            <div class="divide">or</div>
+
+            <form id="joinForm">
+              <div class="field">
+                <label class="label" for="codeInput">Join with a room code</label>
+                <input
+                  id="codeInput"
+                  type="text"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="e.g. 7k3p9q"
+                />
+              </div>
+              <button class="btn btn--ghost" type="submit">Join the room</button>
+            </form>
+          </div>
+
+          <!-- guest action -->
+          <div id="guestActions" hidden>
+            <button class="btn" id="enterBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Enter the room
+            </button>
+          </div>
+
+          <div class="invite" id="invite">
+            <code id="inviteLink">…</code>
+            <button type="button" id="inviteCopy">Copy</button>
+          </div>
+
+          <div class="notice" id="lobbyNotice" hidden></div>
+        </div>
+      </section>
+
+      <!-- ===================== ACTIVE ROOM ===================== -->
+      <section class="stage" id="stage" hidden>
+        <div class="tile">
+          <video id="remoteVideo" autoplay playsinline></video>
+          <div class="tile__wait" id="remoteWait">
+            <span class="g">an empty room</span>
+            <p id="remoteWaitText">Waiting for someone to open your link…</p>
+          </div>
+          <span class="tile__tag">Them</span>
+        </div>
+        <div class="tile">
+          <video id="localVideo" autoplay playsinline muted></video>
+          <span class="tile__tag">You</span>
+        </div>
+      </section>
+
+      <!-- control dock -->
+      <div class="dock" id="dock" hidden>
+        <button class="ctrl" id="micBtn" aria-pressed="false" aria-label="Mute microphone">
+          <span class="ctrl__label">Microphone</span>
+          <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke-linecap="round" />
+          </svg>
+          <svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" hidden aria-hidden="true">
+            <path d="M9 9v-3a3 3 0 0 1 6 0v5M15 12.5a3 3 0 0 1-4.5 1.5M5 11a7 7 0 0 0 10.5 6M12 18v3M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+
+        <button class="ctrl" id="camBtn" aria-pressed="false" aria-label="Turn camera off">
+          <span class="ctrl__label">Camera</span>
+          <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="2" y="6" width="14" height="12" rx="2" /><path d="M16 10l6-3v10l-6-3" stroke-linejoin="round" />
+          </svg>
+          <svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" hidden aria-hidden="true">
+            <path d="M16 10l6-3v10l-6-3M2 6h9M2 6v12h12M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+
+        <button class="ctrl" id="screenBtn" aria-pressed="false" aria-label="Share your screen">
+          <span class="ctrl__label">Share screen</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" stroke-linecap="round" />
+          </svg>
+        </button>
+
+        <button class="ctrl" id="copyBtn" aria-label="Copy invite link">
+          <span class="ctrl__label">Copy invite</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+
+        <button class="ctrl ctrl--end" id="endBtn" aria-label="Leave the call">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M3 10a12 12 0 0 1 18 0l-2.5 2.5-3-1V9a9 9 0 0 0-7 0v2.5l-3 1L3 10Z" stroke-linejoin="round" />
+          </svg>
+          Leave
+        </button>
+      </div>
+
+      <!-- host invite bar (inside stage flow, appears under lobby too via JS) -->
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="assets/call.js"></script>
+  </body>
+</html>
