@@ -8,19 +8,17 @@ script accent, and generously rounded corners. Everything is a token in
 
 ---
 
-## 1. Type — three roles, close free analogues of the brand fonts
+## 1. Type — exactly two families, no more
 
-| Role | The Climate Pledge uses | We use (free) | Token |
-|------|------------------------|---------------|-------|
-| Display / headings | **Editorial New** (high-contrast serif) | **Instrument Serif** | `--serif` |
-| Body / UI | **ClimatePledgeSans / Trio Grotesk** | **Space Grotesk** | `--sans` |
-| Hand-drawn accent | **Kalam** | **Kalam** (exact) | `--hand` |
+| Role | Family | Token |
+|------|--------|-------|
+| Headings / display | **Lexend** | `--serif` (kept the token name; it now points at Lexend) |
+| Body / UI / everything else | **Noto Sans Display** | `--sans` |
 
-- Headlines are large, roman **mixed with italic** (`.serif em`), lowercase or
-  sentence case — never all-caps.
-- One word per headline may get the **Kalam** treatment (green) with a
-  hand-drawn underline — the signature "human" touch. Use sparingly (once/page).
-- Body is Space Grotesk, 400/500.
+No third font. `.hand` is not a different typeface — it's Lexend at 700, set in
+`--green`, used to pick out one word per headline. Use sparingly (once/page).
+The hand-drawn `.uline` squiggle underline still works under any font; it's an
+independent SVG accent, not tied to a script face.
 
 **Fluid scale**
 ```
@@ -77,9 +75,22 @@ buttons lift/darken on hover, arrows nudge. Disabled under
   with a serif title and a circular arrow. The focal point of the page.
 - **`.block`** — a rounded pastel section card (method steps, principles).
 - **`.statement`** — one full **green** rounded block, white serif.
-- **`.hand`** — Kalam accent; **`.uline`** — the hand-drawn SVG squiggle
-  underline (best on mid-size headings, not the giant hero — the em scales up).
+- **`.hand`** — bold green Lexend accent word; **`.uline`** — the hand-drawn
+  SVG squiggle underline (best on mid-size headings, not the giant hero).
 - **Room** — rounded video tiles, pill controls, green live status, same tokens.
+- **`.avatar`** — shown on a video tile in place of a frozen/black frame when
+  a participant's camera is off. A colour is chosen at random (from the pastel
+  palette) once per session and paired with a single consistent face glyph —
+  the colour varies, the mark never does.
+- **`.meter`** — a small live bar-graph next to the mic control reflecting the
+  local mic's captured input level, so a speaker can see their voice is
+  registering. A `.tile--speaking` ring highlights whichever tile (you or them)
+  is currently making sound.
+- **`.net-banner`** — a slim, dismissible, non-blocking bar that appears only
+  when ICE connectivity degrades ("Connection trouble…"), and clears itself
+  automatically once the link recovers. It never blocks interaction.
+- **`.invite-chip`** — the host's shareable link, visible in the room bar for
+  the whole call (not just inside the control dock), one tap to copy.
 
 ## 6. Accessibility & security are part of the system
 

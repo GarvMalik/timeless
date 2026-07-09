@@ -19,7 +19,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Kalam:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Noto+Sans+Display:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/styles.css" />
@@ -30,10 +30,21 @@
         <a class="room__mark" href="index.html">
           <span class="bar__dot" aria-hidden="true"></span>Timeless
         </a>
+        <div class="invite-chip" id="inviteChip">
+          <code id="inviteChipLink">…</code>
+          <button type="button" id="inviteChipCopy">Copy</button>
+        </div>
         <div class="status" id="status" data-state="idle">
           <span class="status__dot" aria-hidden="true"></span>
           <span id="statusText">Not connected</span>
         </div>
+      </div>
+
+      <!-- non-blocking network banner — appears only when the connection
+           degrades, clears itself automatically once it recovers -->
+      <div class="net-banner" id="netBanner" role="status" aria-live="polite" hidden>
+        <span id="netBannerText">Connection trouble — checking your internet…</span>
+        <button type="button" id="netBannerClose" aria-label="Dismiss">×</button>
       </div>
 
       <!-- ===================== LOBBY ===================== -->
@@ -94,16 +105,33 @@
 
       <!-- ===================== ACTIVE ROOM ===================== -->
       <section class="stage" id="stage" hidden>
-        <div class="tile">
+        <div class="tile" id="remoteTile">
           <video id="remoteVideo" autoplay playsinline></video>
+          <div class="avatar" id="remoteAvatar" hidden>
+            <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+              <circle cx="50" cy="38" r="20" stroke="currentColor" stroke-width="4" />
+              <path d="M14 92c4-22 18-34 36-34s32 12 36 34" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+            </svg>
+          </div>
           <div class="tile__wait" id="remoteWait">
             <span class="gt">An empty room</span>
             <p id="remoteWaitText">Waiting for someone to open your link…</p>
           </div>
+          <span class="tile__badge" id="remoteMuteBadge" aria-label="They are muted">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M9 9v-3a3 3 0 0 1 6 0v5M15 12.5a3 3 0 0 1-4.5 1.5M5 11a7 7 0 0 0 10.5 6M12 18v3M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
           <span class="tile__tag">Them</span>
         </div>
-        <div class="tile">
+        <div class="tile" id="localTile">
           <video id="localVideo" autoplay playsinline muted></video>
+          <div class="avatar" id="localAvatar" hidden>
+            <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+              <circle cx="50" cy="38" r="20" stroke="currentColor" stroke-width="4" />
+              <path d="M14 92c4-22 18-34 36-34s32 12 36 34" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+            </svg>
+          </div>
           <span class="tile__tag">You</span>
         </div>
       </section>
@@ -119,6 +147,10 @@
             <path d="M9 9v-3a3 3 0 0 1 6 0v5M15 12.5a3 3 0 0 1-4.5 1.5M5 11a7 7 0 0 0 10.5 6M12 18v3M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
+
+        <div class="meter" id="micMeter" aria-hidden="true" title="Your mic level — this is roughly what reaches them">
+          <span></span><span></span><span></span><span></span>
+        </div>
 
         <button class="ctrl" id="camBtn" aria-pressed="false" aria-label="Turn camera off">
           <span class="ctrl__label">Camera</span>

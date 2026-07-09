@@ -37,11 +37,23 @@
   var invite = $('invite');
   var inviteLink = $('inviteLink');
   var inviteCopy = $('inviteCopy');
+  var inviteChip = $('inviteChip');
+  var inviteChipLink = $('inviteChipLink');
+  var inviteChipCopy = $('inviteChipCopy');
+
+  var netBanner = $('netBanner');
+  var netBannerText = $('netBannerText');
+  var netBannerClose = $('netBannerClose');
 
   var localVideo = $('localVideo');
   var remoteVideo = $('remoteVideo');
   var remoteWait = $('remoteWait');
   var remoteWaitText = $('remoteWaitText');
+  var remoteTile = $('remoteTile');
+  var localTile = $('localTile');
+  var remoteAvatar = $('remoteAvatar');
+  var localAvatar = $('localAvatar');
+  var remoteMuteBadge = $('remoteMuteBadge');
 
   var micBtn = $('micBtn');
   var camBtn = $('camBtn');
@@ -49,10 +61,13 @@
   var copyBtn = $('copyBtn');
   var endBtn = $('endBtn');
   var toast = $('toast');
+  var micMeter = $('micMeter');
+  var micMeterBars = micMeter ? micMeter.querySelectorAll('span') : [];
 
   // ---- state -------------------------------------------------------------
   var peer = null;
   var currentCall = null;
+  var dataConn = null;
   var localStream = null;
   var screenStream = null;
 
@@ -63,6 +78,25 @@
   var sharingScreen = false;
   var startMode = 'camera';
   var ended = false;
+  var remoteConnected = false;
+
+  // what we believe about the other participant, kept in sync over a small
+  // PeerJS data channel (see "presence" section below)
+  var remoteState = { cam: true, mic: true, screen: false };
+
+  // random-but-consistent "camera off" avatar: one colour per session, one
+  // face glyph always — see the "avatars" section below
+  var localAvatarColor = null;
+  var remoteAvatarColor = null;
+
+  // mic-level meter + speaking indicator (Web Audio, local analysis only —
+  // nothing is sent anywhere for this)
+  var localMeter = null;
+  var remoteMeter = null;
+
+  // network banner state
+  var netShownFor = null; // 'offline' | 'ice' | null
+  var netDismissedFor = null;
 
   // ---- url params --------------------------------------------------------
   var params = new URLSearchParams(window.location.search);
@@ -106,6 +140,19 @@
   // field before it is handed to PeerJS or written into a link.
   function isValidCode(c) {
     return typeof c === 'string' && /^[a-z0-9]{4,40}$/.test(c);
+  }
+
+  // Same pastel family as the design system (--mint/--sky/--peach/--lilac)
+  // plus a couple of siblings, so a random pick never clashes with the brand.
+  var AVATAR_COLORS = ['#c4f0d0', '#cbe2f9', '#f4e2d6', '#eddfeb', '#f9e9b8', '#d9e8d3'];
+
+  function randomItem(list) {
+    if (window.crypto && window.crypto.getRandomValues) {
+      var buf = new Uint32Array(1);
+      window.crypto.getRandomValues(buf);
+      return list[buf[0] % list.length];
+    }
+    return list[Math.floor(Math.random() * list.length)];
   }
 
   function inviteUrl(code) {
@@ -191,6 +238,8 @@
     localVideo.srcObject = localStream;
     micOn = true;
     camOn = true;
+    updateLocalAvatarVisibility();
+    startLocalMeter();
     updateControls();
   }
 
@@ -264,6 +313,187 @@
   }
 
   // =========================================================================
+  // avatars — shown on a tile in place of a frozen/black frame when that
+  // participant's camera is off. Colour is random per session; the face
+  // glyph itself never changes, so it always reads as "this is a person".
+  // =========================================================================
+  function updateLocalAvatarVisibility() {
+    if (!localAvatarColor) {
+      localAvatarColor = randomItem(AVATAR_COLORS);
+      localAvatar.style.background = localAvatarColor;
+    }
+    localAvatar.hidden = camOn || sharingScreen;
+  }
+
+  function updateRemoteAvatarVisibility() {
+    if (!remoteConnected) {
+      remoteAvatar.hidden = true;
+      return;
+    }
+    if (!remoteAvatarColor) {
+      remoteAvatarColor = randomItem(AVATAR_COLORS);
+      remoteAvatar.style.background = remoteAvatarColor;
+    }
+    remoteAvatar.hidden = remoteState.cam || remoteState.screen;
+  }
+
+  // =========================================================================
+  // presence — a lightweight PeerJS data channel that tells the other side
+  // whether our camera/mic/screen-share is on. This is what lets their tile
+  // show an avatar instead of a black frame, and lets them see if we're
+  // muted — none of it can be inferred from the media track alone.
+  // =========================================================================
+  function sendState() {
+    if (dataConn && dataConn.open) {
+      dataConn.send({ t: 'state', cam: camOn && !sharingScreen, mic: micOn, screen: sharingScreen });
+    }
+  }
+
+  function wireData(conn) {
+    dataConn = conn;
+    conn.on('open', sendState);
+    conn.on('data', function (msg) {
+      if (!msg || msg.t !== 'state') return;
+      remoteState = { cam: !!msg.cam, mic: !!msg.mic, screen: !!msg.screen };
+      updateRemoteAvatarVisibility();
+      remoteMuteBadge.classList.toggle('show', !remoteState.mic);
+    });
+    conn.on('close', function () { dataConn = null; });
+    conn.on('error', function (e) { console.warn('data channel error', e); });
+  }
+
+  // =========================================================================
+  // audio meters — local Web Audio analysis only; nothing here is sent
+  // anywhere. The mic meter is a direct readout of what your microphone is
+  // capturing, so you can see for yourself that your voice is registering.
+  // The "speaking" ring on a tile is the same idea applied to whichever
+  // stream (yours or theirs) currently has sound in it.
+  // =========================================================================
+  function createMeter(stream, onLevel) {
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    var track = stream.getAudioTracks()[0];
+    if (!track) return null;
+
+    var ctx = new Ctx();
+    var source = ctx.createMediaStreamSource(new MediaStream([track]));
+    var analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.6;
+    source.connect(analyser);
+
+    var data = new Uint8Array(analyser.frequencyBinCount);
+    var raf = null;
+    var stopped = false;
+
+    function tick() {
+      if (stopped) return;
+      analyser.getByteTimeDomainData(data);
+      var sum = 0;
+      for (var i = 0; i < data.length; i++) {
+        var v = (data[i] - 128) / 128;
+        sum += v * v;
+      }
+      var rms = Math.sqrt(sum / data.length); // 0..~1
+      onLevel(Math.min(1, rms * 4)); // scale up — raw mic RMS reads very quiet
+      raf = requestAnimationFrame(tick);
+    }
+    tick();
+
+    return {
+      stop: function () {
+        stopped = true;
+        if (raf) cancelAnimationFrame(raf);
+        try { source.disconnect(); } catch (e) {}
+        try { ctx.close(); } catch (e) {}
+      },
+    };
+  }
+
+  var SPEAK_THRESHOLD = 0.06;
+
+  function startLocalMeter() {
+    if (localMeter) localMeter.stop();
+    localMeter = createMeter(localStream, function (level) {
+      var speaking = micOn && level > SPEAK_THRESHOLD;
+      localTile.classList.toggle('tile--speaking', speaking);
+      if (!micOn) return; // bars already forced flat via [data-muted]
+      micMeter.setAttribute('data-active', level > 0.03 ? 'true' : 'false');
+      for (var i = 0; i < micMeterBars.length; i++) {
+        var bar = (i + 1) / micMeterBars.length; // 0.25, 0.5, 0.75, 1
+        var pct = level >= bar ? Math.min(100, 25 + level * 75) : 15;
+        micMeterBars[i].style.height = pct + '%';
+      }
+    });
+  }
+
+  function startRemoteMeter(stream) {
+    if (remoteMeter) remoteMeter.stop();
+    remoteMeter = createMeter(stream, function (level) {
+      remoteTile.classList.toggle('tile--speaking', level > SPEAK_THRESHOLD);
+    });
+  }
+
+  function stopMeters() {
+    if (localMeter) { localMeter.stop(); localMeter = null; }
+    if (remoteMeter) { remoteMeter.stop(); remoteMeter = null; }
+  }
+
+  // =========================================================================
+  // network — a slim, non-blocking banner. It never demands action; it just
+  // keeps the user in the loop and clears itself the moment things recover.
+  // =========================================================================
+  function showNetBanner(kind, text) {
+    netShownFor = kind;
+    if (netDismissedFor === kind) return; // user already saw and closed this one
+    netBanner.hidden = false;
+    netBanner.setAttribute('data-kind', kind === 'offline' ? 'offline' : 'ice');
+    netBannerText.textContent = text;
+  }
+
+  function hideNetBanner() {
+    if (netShownFor === null) return;
+    netShownFor = null;
+    netDismissedFor = null;
+    netBanner.hidden = true;
+  }
+
+  // brief, self-clearing confirmation once a real problem resolves — quieter
+  // than the trouble banner, and never shown if nothing was ever wrong
+  function flashRecovered() {
+    if (netShownFor === null) return; // nothing was showing — say nothing
+    var wasDismissed = netDismissedFor !== null;
+    netShownFor = null;
+    netDismissedFor = null;
+    if (wasDismissed) { netBanner.hidden = true; return; }
+    netBanner.setAttribute('data-kind', 'ok');
+    netBannerText.textContent = "Back online.";
+    clearTimeout(flashRecovered._t);
+    flashRecovered._t = setTimeout(function () { netBanner.hidden = true; }, 2200);
+  }
+
+  function watchNetwork() {
+    window.addEventListener('offline', function () {
+      showNetBanner('offline', "You're offline — check your internet connection. We'll keep waiting for you.");
+    });
+    window.addEventListener('online', function () {
+      if (netShownFor === 'offline') flashRecovered();
+    });
+  }
+
+  function watchIce(pc) {
+    if (!pc) return;
+    pc.addEventListener('iceconnectionstatechange', function () {
+      var s = pc.iceConnectionState;
+      if (s === 'disconnected' || s === 'failed') {
+        showNetBanner('ice', "Connection trouble — check your internet. We'll keep trying to reconnect…");
+      } else if (s === 'connected' || s === 'completed') {
+        if (netShownFor === 'ice') flashRecovered();
+      }
+    });
+  }
+
+  // =========================================================================
   // controls
   // =========================================================================
   function setPressed(btn, on) { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
@@ -291,6 +521,10 @@
     // camera toggle is meaningless while presenting a screen
     camBtn.disabled = sharingScreen;
     camBtn.style.opacity = sharingScreen ? '0.4' : '';
+
+    micMeter.setAttribute('data-muted', micOn ? 'false' : 'true');
+    updateLocalAvatarVisibility();
+    sendState();
   }
 
   function toggleMic() {
@@ -323,7 +557,10 @@
   function attachRemote(stream) {
     remoteVideo.srcObject = stream;
     remoteWait.hidden = true;
+    remoteConnected = true;
     setStatus('live', 'Live · connected');
+    updateRemoteAvatarVisibility();
+    startRemoteMeter(stream);
   }
 
   function wireCall(call) {
@@ -334,12 +571,19 @@
       console.warn('call error', err);
       showToast('The connection dropped.');
     });
+    // PeerJS exposes the underlying RTCPeerConnection synchronously
+    watchIce(call.peerConnection);
   }
 
   function onPeerLeft() {
     if (ended) return;
     remoteVideo.srcObject = null;
     remoteWait.hidden = false;
+    remoteConnected = false;
+    remoteAvatar.hidden = true;
+    remoteMuteBadge.classList.remove('show');
+    remoteTile.classList.remove('tile--speaking');
+    if (remoteMeter) { remoteMeter.stop(); remoteMeter = null; }
     remoteWaitText.textContent = isHost
       ? 'They left. Your room is still open — share the link again to invite someone.'
       : 'The host closed the room.';
@@ -357,6 +601,8 @@
       var url = inviteUrl(id);
       inviteLink.textContent = url;
       invite.classList.add('show');
+      inviteChipLink.textContent = url;
+      inviteChip.classList.add('show');
       setStatus('waiting', 'Waiting · room open');
       remoteWaitText.textContent = 'Waiting for someone to open your link…';
       enterRoomView();
@@ -366,6 +612,9 @@
       call.answer(localStream);
       wireCall(call);
     });
+
+    // the guest opens this once they've called us — see joinAsGuest
+    peer.on('connection', function (conn) { wireData(conn); });
 
     peer.on('error', function (err) {
       if (err && err.type === 'unavailable-id') {
@@ -398,6 +647,7 @@
         return;
       }
       wireCall(call);
+      wireData(peer.connect(code, { reliable: true }));
     });
 
     peer.on('error', function (err) {
@@ -417,6 +667,9 @@
   function leave() {
     ended = true;
     setStatus('ended', 'Call ended');
+    stopMeters();
+    netBanner.hidden = true;
+    try { if (dataConn) dataConn.close(); } catch (e) {}
     try { if (currentCall) currentCall.close(); } catch (e) {}
     try { if (peer) peer.destroy(); } catch (e) {}
     if (localStream) localStream.getTracks().forEach(function (t) { t.stop(); });
@@ -513,6 +766,12 @@
     doCopy();
   });
   inviteCopy.addEventListener('click', doCopy);
+  inviteChipCopy.addEventListener('click', doCopy);
+
+  netBannerClose.addEventListener('click', function () {
+    netDismissedFor = netShownFor;
+    netBanner.hidden = true;
+  });
 
   window.addEventListener('beforeunload', function () {
     try { if (peer) peer.destroy(); } catch (e) {}
@@ -521,6 +780,8 @@
   // =========================================================================
   // boot
   // =========================================================================
+  watchNetwork();
+
   if (typeof Peer === 'undefined') {
     notice('Could not load the connection library. Check your network and reload.');
   } else if (joinCode) {

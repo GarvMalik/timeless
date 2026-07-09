@@ -39,9 +39,9 @@ SECURITY.md     → threat model + hardening (CSP, self-hosted code, etc.)
 
 Visual identity modelled on [The Climate Pledge](https://www.theclimatepledge.com):
 warm off-white, a signature green, soft pastel colour-blocks, generous rounding,
-and big high-contrast serif headlines. Type: **Instrument Serif** (display),
-**Space Grotesk** (body/UI), and **Kalam** for the hand-drawn accents. Every
-colour, size, and timing is a token in `:root` — see [`DESIGN.md`](DESIGN.md).
+and generous rounding. Two fonts, no more: **Lexend** (headings) and
+**Noto Sans Display** (everything else). Every colour, size, and timing is a
+token in `:root` — see [`DESIGN.md`](DESIGN.md).
 
 ## Using it
 
@@ -51,7 +51,21 @@ colour, size, and timing is a token in `:root` — see [`DESIGN.md`](DESIGN.md).
 4. They open the link, allow their camera, and you're connected.
 
 During a call you can mute, turn the camera off, switch between your camera and
-your screen, copy the invite again, or leave.
+your screen, copy the invite again, or leave. A few things happen automatically:
+
+- **Camera-off avatar** — instead of a frozen or black frame, a tile shows a
+  simple face glyph on a random pastel background while that person's camera
+  is off (a tiny presence signal exchanged over a PeerJS data channel is what
+  lets your camera state show up on *their* screen too).
+- **Mic level meter** — a small bar-graph next to the mic button reflects what
+  your microphone is actually picking up, so you can see your voice is
+  registering. Whichever side is currently making sound gets a subtle ring
+  around their tile.
+- **Connection banner** — if your internet drops or the peer connection
+  degrades, a slim banner says so and clears itself once things recover. It
+  never blocks the call or forces you to do anything.
+- **On-screen invite** — the host's shareable link stays visible in the room
+  bar for the whole call, not just tucked in the control dock.
 
 ## Run it locally
 

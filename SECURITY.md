@@ -67,6 +67,14 @@ Audio and video are **peer-to-peer over WebRTC**, which is encrypted in transit
 by mandate (DTLS-SRTP). The broker relays only connection-setup metadata — it
 never sees or relays your media.
 
+A small **presence data channel** (also a WebRTC `RTCDataChannel`, so equally
+DTLS-encrypted) runs alongside the media for the camera-off-avatar and
+muted-badge features. It carries exactly three booleans (`cam`/`mic`/`screen`)
+and nothing else — no identifiers, no content, no audio levels. Mic-level
+metering and the "speaking" ring are computed entirely with local Web Audio
+analysis on streams already present in the browser; nothing about your voice
+is ever transmitted for that feature.
+
 ### 7. Clickjacking
 `frame-ancestors 'none'` is set, and because a `<meta>` CSP can't enforce that
 directive, an early synchronous `assets/guard.js` also busts the page out of any
