@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- security: self-hosted script only, media allowed, peerjs broker allowed -->
+    <!-- security: self-hosted scripts only, media allowed, peerjs broker allowed -->
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob: mediastream:; connect-src 'self' wss://0.peerjs.com https://0.peerjs.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests"
@@ -34,35 +34,62 @@
           <code id="inviteChipLink">…</code>
           <button type="button" id="inviteChipCopy">Copy</button>
         </div>
+        <div class="music-pill" id="musicPill" hidden>
+          <span aria-hidden="true">♪</span>
+          <span id="musicPillText">Someone's music</span>
+        </div>
         <div class="status" id="status" data-state="idle">
           <span class="status__dot" aria-hidden="true"></span>
           <span id="statusText">Not connected</span>
         </div>
       </div>
 
-      <!-- non-blocking network banner — appears only when the connection
-           degrades, clears itself automatically once it recovers -->
-      <div class="net-banner" id="netBanner" role="status" aria-live="polite" hidden>
-        <span id="netBannerText">Connection trouble — checking your internet…</span>
-        <button type="button" id="netBannerClose" aria-label="Dismiss">×</button>
+      <!-- shared, single-slot banner: network trouble takes priority over the
+           quiet "large call" performance advisory; both are non-blocking and
+           self-clear — see ARCHITECTURE.md -->
+      <div class="banner" id="banner" role="status" aria-live="polite" hidden>
+        <span id="bannerText"></span>
+        <button type="button" id="bannerClose" aria-label="Dismiss">×</button>
       </div>
 
       <!-- ===================== LOBBY ===================== -->
+      <!-- Four steps, one screen at a time: name -> choose (skipped when
+           arriving via an invite link) -> camera preview -> (guests only)
+           wait for the host to let you in. See ARCHITECTURE.md "Join flow". -->
       <section class="lobby" id="lobby">
         <div class="card">
           <span class="label card__eyebrow" id="lobbyEyebrow">The room · 00</span>
           <h1 id="lobbyTitle">Open a <em>room.</em></h1>
           <p class="sub" id="lobbySub">
             Your browser hosts the room. Open it, copy the link, and send it to
-            one other person — that link is the whole invitation.
+            your friends — that link is the whole invitation.
           </p>
 
-          <div id="hostActions">
+          <!-- STEP 1 — a name is required before anything else unlocks -->
+          <form id="nameForm" autocomplete="off">
+            <div class="field">
+              <label class="label" for="nameInput">Your name</label>
+              <input
+                id="nameInput"
+                type="text"
+                autocomplete="name"
+                spellcheck="false"
+                maxlength="40"
+                placeholder="e.g. Alex"
+                required
+              />
+            </div>
+            <button class="btn btn--block" type="submit" id="nameContinueBtn">Continue</button>
+          </form>
+
+          <!-- STEP 2 — how you're joining (hidden when a room code already
+               came from the invite link — see configureGuestLobby in call.js) -->
+          <div id="stepChoice" hidden>
             <button class="btn btn--block" id="openBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              Open the room
+              Open a room
             </button>
 
             <div class="divide">or</div>
@@ -81,49 +108,86 @@
                   placeholder="e.g. 7k3p9qa2df"
                 />
               </div>
-              <button class="btn btn--ghost btn--block" type="submit">Join the room</button>
+              <button class="btn btn--ghost btn--block" type="submit">Continue</button>
             </form>
           </div>
 
-          <div id="guestActions" hidden>
-            <button class="btn btn--block" id="enterBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              Enter the room
-            </button>
+          <!-- STEP 3 — camera preview, mirrors Meet's "Ready to join?" -->
+          <div id="stepPreview" hidden>
+            <div class="preview-tile" id="previewTile">
+              <video id="previewVideo" autoplay playsinline muted></video>
+              <div class="avatar" id="previewAvatar" hidden>
+                <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+                  <circle cx="50" cy="38" r="20" stroke="currentColor" stroke-width="4" />
+                  <path d="M14 92c4-22 18-34 36-34s32 12 36 34" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div class="preview-tile__controls">
+                <button class="ctrl" id="previewMicBtn" type="button" aria-pressed="false" aria-label="Mute microphone">
+                  <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke-linecap="round" />
+                  </svg>
+                  <svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" hidden aria-hidden="true">
+                    <path d="M9 9v-3a3 3 0 0 1 6 0v5M15 12.5a3 3 0 0 1-4.5 1.5M5 11a7 7 0 0 0 10.5 6M12 18v3M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+                <button class="ctrl" id="previewCamBtn" type="button" aria-pressed="false" aria-label="Turn camera off">
+                  <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <rect x="2" y="6" width="14" height="12" rx="2" /><path d="M16 10l6-3v10l-6-3" stroke-linejoin="round" />
+                  </svg>
+                  <svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" hidden aria-hidden="true">
+                    <path d="M16 10l6-3v10l-6-3M2 6h9M2 6v12h12M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <p class="sub preview-sub" id="previewSub">Just you so far.</p>
+            <button class="btn btn--block" id="previewContinueBtn" type="button">Open the room</button>
+            <button class="link-back" id="previewBackBtn" type="button">‹ Back</button>
           </div>
 
-          <div class="invite" id="invite">
-            <code id="inviteLink">…</code>
-            <button type="button" id="inviteCopy">Copy</button>
+          <!-- STEP 4 — guests only: the host must let you in -->
+          <div id="stepWaiting" hidden>
+            <div class="waiting-spin" aria-hidden="true"></div>
+            <p class="sub" id="waitingText">Waiting for the host to let you in…</p>
+            <button class="btn btn--ghost btn--block" id="waitingCancelBtn" type="button">Cancel</button>
           </div>
 
           <div class="notice" id="lobbyNotice" hidden></div>
         </div>
       </section>
 
+      <!-- host-only: pending "knock" requests from guests waiting to be let in -->
+      <div class="knock-panel" id="knockPanel" hidden>
+        <div class="knock-list" id="knockList"></div>
+      </div>
+      <template id="knockTemplate">
+        <div class="knock">
+          <span class="knock__name"></span>
+          <div class="knock__actions">
+            <button type="button" class="knock__admit">Admit</button>
+            <button type="button" class="knock__deny" aria-label="Deny">×</button>
+          </div>
+        </div>
+      </template>
+
       <!-- ===================== ACTIVE ROOM ===================== -->
       <section class="stage" id="stage" hidden>
-        <div class="tile" id="remoteTile">
-          <video id="remoteVideo" autoplay playsinline></video>
-          <div class="avatar" id="remoteAvatar" hidden>
-            <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
-              <circle cx="50" cy="38" r="20" stroke="currentColor" stroke-width="4" />
-              <path d="M14 92c4-22 18-34 36-34s32 12 36 34" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
-            </svg>
-          </div>
-          <div class="tile__wait" id="remoteWait">
-            <span class="gt">An empty room</span>
-            <p id="remoteWaitText">Waiting for someone to open your link…</p>
-          </div>
-          <span class="tile__badge" id="remoteMuteBadge" aria-label="They are muted">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-              <path d="M9 9v-3a3 3 0 0 1 6 0v5M15 12.5a3 3 0 0 1-4.5 1.5M5 11a7 7 0 0 0 10.5 6M12 18v3M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </span>
-          <span class="tile__tag">Them</span>
+        <div class="stage__empty" id="stageEmpty">
+          <span class="gt">An empty room</span>
+          <p id="stageEmptyText">Waiting for someone to open your link…</p>
         </div>
+
+        <!-- floating affordance — appears for everyone the moment someone's
+             state reports content:'movie'; purely local UI, see theater.js -->
+        <button type="button" class="theater-cta" id="theaterCta" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Enter theater view
+        </button>
+
+        <!-- your own tile — fixed, not cloned (see room.js) -->
         <div class="tile" id="localTile">
           <video id="localVideo" autoplay playsinline muted></video>
           <div class="avatar" id="localAvatar" hidden>
@@ -132,14 +196,35 @@
               <path d="M14 92c4-22 18-34 36-34s32 12 36 34" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
             </svg>
           </div>
-          <span class="tile__tag">You</span>
+          <span class="tile__tag" id="localTag">You</span>
         </div>
+        <!-- one .tile per remote participant is cloned from #tileTemplate
+             and appended here by room.js -->
       </section>
+
+      <!-- template cloned once per remote participant — see room.js -->
+      <template id="tileTemplate">
+        <div class="tile">
+          <video autoplay playsinline></video>
+          <div class="avatar" hidden>
+            <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+              <circle cx="50" cy="38" r="20" stroke="currentColor" stroke-width="4" />
+              <path d="M14 92c4-22 18-34 36-34s32 12 36 34" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+            </svg>
+          </div>
+          <span class="tile__badge" aria-label="Muted">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M9 9v-3a3 3 0 0 1 6 0v5M15 12.5a3 3 0 0 1-4.5 1.5M5 11a7 7 0 0 0 10.5 6M12 18v3M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="tile__tag"></span>
+        </div>
+      </template>
 
       <!-- control dock -->
       <div class="dock" id="dock" hidden>
         <button class="ctrl" id="micBtn" aria-pressed="false" aria-label="Mute microphone">
-          <span class="ctrl__label">Microphone</span>
+          <span class="ctrl__label" id="micLabel">Microphone</span>
           <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
             <rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke-linecap="round" />
           </svg>
@@ -162,11 +247,27 @@
           </svg>
         </button>
 
-        <button class="ctrl" id="screenBtn" aria-pressed="false" aria-label="Share your screen">
-          <span class="ctrl__label">Share screen</span>
+        <button class="ctrl" id="movieBtn" aria-pressed="false" aria-label="Start Movie Mode">
+          <span class="ctrl__label">Movie Mode</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" stroke-linecap="round" />
+            <rect x="2.5" y="5" width="14" height="14" rx="2" /><path d="M16.5 10l5-3v10l-5-3" stroke-linejoin="round" />
           </svg>
+        </button>
+
+        <button class="ctrl" id="musicBtn" aria-pressed="false" aria-label="Start Music Mode">
+          <span class="ctrl__label">Music Mode</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M9 18V5l11-2v13" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" />
+          </svg>
+        </button>
+
+        <button class="ctrl" id="chatBtn" aria-pressed="false" aria-label="Open chat">
+          <span class="ctrl__label">Chat</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M4 5h16v11H8l-4 4V5Z" stroke-linejoin="round" />
+          </svg>
+          <span class="ctrl__badge" id="chatBadge" hidden></span>
         </button>
 
         <button class="ctrl" id="copyBtn" aria-label="Copy invite link">
@@ -184,11 +285,41 @@
           Leave
         </button>
       </div>
+
+      <!-- ===================== CHAT PANEL ===================== -->
+      <aside class="chat" id="chatPanel" aria-label="Chat">
+        <div class="chat__head">
+          <span class="label">Chat</span>
+          <button type="button" class="chat__close" id="chatClose" aria-label="Close chat">×</button>
+        </div>
+        <div class="chat__list" id="chatList" role="log" aria-live="polite"></div>
+        <form class="chat__form" id="chatForm" autocomplete="off">
+          <input id="chatInput" type="text" maxlength="2000" placeholder="Message everyone…" autocomplete="off" />
+          <button type="submit" aria-label="Send message">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </form>
+      </aside>
+
+      <!-- ===================== THEATER VIEW ===================== -->
+      <div class="theater" id="theaterView">
+        <video id="theaterVideo" autoplay playsinline></video>
+        <div class="theater__chrome" id="theaterChrome">
+          <button type="button" class="theater__exit" id="theaterExit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M9 3v4a2 2 0 0 1-2 2H3M15 3v4a2 2 0 0 0 2 2h4M9 21v-4a2 2 0 0 0-2-2H3M15 21v-4a2 2 0 0 1 2-2h4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Exit theater view
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="toast" id="toast"></div>
 
     <script src="assets/vendor/peerjs-1.5.4.min.js"></script>
-    <script src="assets/call.js"></script>
+    <script type="module" src="assets/call.js"></script>
   </body>
 </html>

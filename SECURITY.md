@@ -64,23 +64,41 @@ this makes rooms impractical to brute-force or enumerate.
 
 ### 6. Media confidentiality
 Audio and video are **peer-to-peer over WebRTC**, which is encrypted in transit
-by mandate (DTLS-SRTP). The broker relays only connection-setup metadata — it
-never sees or relays your media.
+by mandate (DTLS-SRTP), in a full mesh — every participant connects directly
+to every other participant, so nobody's media ever passes through a server we
+(or anyone else) run. The broker relays only connection-setup metadata for
+each pair — it never sees or relays media.
 
-A small **presence data channel** (also a WebRTC `RTCDataChannel`, so equally
-DTLS-encrypted) runs alongside the media for the camera-off-avatar and
-muted-badge features. It carries exactly three booleans (`cam`/`mic`/`screen`)
-and nothing else — no identifiers, no content, no audio levels. Mic-level
+A small **data channel** (also a WebRTC `RTCDataChannel`, so equally
+DTLS-encrypted) runs alongside the media on every pairwise connection, for
+presence (camera-off-avatar, muted badge), the join/roster/admission
+handshake, chat, and content-sharing coordination. Every message is a small,
+typed, primitive-only JSON object — see `ARCHITECTURE.md` for the exact
+schemas — with names capped at 40 characters and chat text at 2,000. Mic-level
 metering and the "speaking" ring are computed entirely with local Web Audio
 analysis on streams already present in the browser; nothing about your voice
-is ever transmitted for that feature.
+is ever transmitted for that feature. Movie/Music Mode's captured audio and
+video flow the same peer-to-peer way as camera/mic — no new server, no new
+origin (see the CSP above, unchanged for these features).
 
-### 7. Clickjacking
+### 7. Host-gated admission (waiting room)
+Joining isn't automatic: a new participant's data connection to the host
+sends a "knock," and the host must explicitly admit or deny them — see
+`ARCHITECTURE.md` → "Join & admission protocol". This gives the host real-time
+visibility and control over who enters, on top of the room code itself. It's
+worth being precise about what this is and isn't: **it's a cooperative-client
+UX gate, not a cryptographic access control.** The room code remains the actual
+secret — the host-side code defensively answers only calls from peer ids it
+explicitly admitted, but a custom client that skipped the knock step
+entirely could still attempt to reach a known code. Don't share a room code
+with anyone you wouldn't want in the call, waiting room or not.
+
+### 8. Clickjacking
 `frame-ancestors 'none'` is set, and because a `<meta>` CSP can't enforce that
 directive, an early synchronous `assets/guard.js` also busts the page out of any
 frame.
 
-### 8. Transport & privacy hygiene
+### 9. Transport & privacy hygiene
 - HTTPS is enforced by GitHub Pages, and `upgrade-insecure-requests` blocks any
   accidental mixed content.
 - `referrer: no-referrer` and `rel="noopener noreferrer"` on outbound links stop
@@ -96,6 +114,11 @@ frame.
 - A few response headers (`X-Content-Type-Options`, `Permissions-Policy`) can
   only be set as real HTTP headers, which GitHub Pages doesn't allow. Hosting
   behind a CDN/proxy that adds them would close that last gap.
+- **The waiting room is cooperative, not cryptographic** — see control 7
+  above. The room code is still the real access boundary.
+- **New joins depend on the host staying reachable** — a mesh limitation of
+  not running a server, documented in full in `ARCHITECTURE.md` → "Known
+  limitations."
 
 ## Reporting
 

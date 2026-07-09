@@ -86,11 +86,31 @@ buttons lift/darken on hover, arrows nudge. Disabled under
   local mic's captured input level, so a speaker can see their voice is
   registering. A `.tile--speaking` ring highlights whichever tile (you or them)
   is currently making sound.
-- **`.net-banner`** — a slim, dismissible, non-blocking bar that appears only
-  when ICE connectivity degrades ("Connection trouble…"), and clears itself
-  automatically once the link recovers. It never blocks interaction.
+- **`.banner`** — one shared slim, dismissible, non-blocking bar: network
+  trouble, the quiet large-call performance advisory, and the "back online"
+  flash all use the same slot (network trouble always wins). Never blocks
+  interaction.
 - **`.invite-chip`** — the host's shareable link, visible in the room bar for
   the whole call (not just inside the control dock), one tap to copy.
+- **`.stage`** — the video grid. Tile count sets a `--cols` custom property
+  (a small balanced-columns heuristic, same family as Meet/Zoom); the
+  wrapping itself is plain CSS grid. Your own tile is fixed; every remote
+  participant's tile is cloned from `#tileTemplate`.
+- **`.preview-tile`** — the pre-join camera check ("Ready to join?"): the same
+  `.avatar`/`.ctrl` components, scaled down inside the lobby card, mirrored
+  like a real mirror (`scaleX(-1)`) the way every video-call preview does.
+- **`.knock-panel` / `.knock`** — floating cards for pending join requests,
+  host-only, one per waiting guest, Admit/Deny.
+- **`.chat`** — a slide-in panel (transform, not `[hidden]`, so it actually
+  animates), pastel/rounded like the rest of the system. `.msg--me` picks out
+  your own messages in green; `.msg--system` is centered, quiet join/leave
+  copy.
+- **`.theater`** — the full-screen "watch together" focus view: a dark
+  overlay, the shared video blown up, minimal chrome that fades on idle and
+  returns on any movement. Local-only state — never synced between
+  participants.
+- **`.music-pill`** — a small mint chip in the room bar naming whoever's
+  music is currently playing.
 
 ## 6. Accessibility & security are part of the system
 

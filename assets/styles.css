@@ -461,8 +461,11 @@ img, video { display: block; max-width: 100%; }
 .status[data-state='live'] .status__dot { background: var(--green); animation: pulse 1.6s var(--ease) infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
 
-/* ---- network banner — slim, non-blocking, self-clearing ---------------- */
-.net-banner {
+/* ---- shared banner — slim, non-blocking, self-clearing -----------------
+   One slot, several uses: network trouble ('offline'/'ice'), the "back
+   online" flash ('ok'), and the quiet large-call performance advisory
+   ('perf'). Only one shows at a time — see call.js showBanner(). ---------- */
+.banner {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -474,9 +477,11 @@ img, video { display: block; max-width: 100%; }
   text-align: center;
   transition: background var(--dur) var(--ease);
 }
-.net-banner[data-kind='offline'] { background: var(--peach); }
-.net-banner[data-kind='ok'] { background: var(--mint); }
-.net-banner button {
+.banner[data-kind='offline'],
+.banner[data-kind='ice'] { background: var(--peach); }
+.banner[data-kind='ok'] { background: var(--mint); }
+.banner[data-kind='perf'] { background: var(--sky); }
+.banner button {
   flex-shrink: 0;
   background: none;
   border: none;
@@ -487,9 +492,109 @@ img, video { display: block; max-width: 100%; }
   opacity: 0.55;
   transition: opacity var(--dur) var(--ease);
 }
-.net-banner button:hover { opacity: 1; }
+.banner button:hover { opacity: 1; }
 
-.stage { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(0.75rem, 2vw, 1.25rem); padding: clamp(0.75rem, 2vw, 1.25rem); min-height: 0; }
+/* ---- knock panel — pending join requests, host only --------------------- */
+.knock-panel {
+  position: fixed;
+  top: 4.5rem;
+  right: var(--edge);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: min(20rem, calc(100vw - 2 * var(--edge)));
+}
+.knock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 0.9rem 1rem;
+  box-shadow: 0 12px 28px rgba(49, 47, 45, 0.14);
+  animation: knock-in 0.35s var(--ease);
+}
+@keyframes knock-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.knock__name { font-size: var(--fs-sm); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.knock__actions { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+.knock__admit {
+  border: none;
+  border-radius: var(--r-pill);
+  background: var(--green);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.knock__admit:hover { background: var(--green-600); }
+.knock__deny {
+  width: 1.9rem; height: 1.9rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.knock__deny:hover { background: var(--red); border-color: var(--red); color: #fff; }
+
+.stage {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), 1fr);
+  align-content: center;
+  gap: clamp(0.75rem, 2vw, 1.25rem);
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+  min-height: 0;
+}
+.stage__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  text-align: center;
+  padding: 2rem;
+  pointer-events: none;
+}
+.stage__empty .gt { font-family: var(--serif); font-size: clamp(1.6rem, 3vw, 2.4rem); color: var(--ink); }
+.stage__empty p { color: var(--ink-2); font-size: var(--fs-sm); max-width: 30ch; }
+
+.theater-cta {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1rem, 3vw, 1.75rem);
+  transform: translateX(-50%);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.8rem 1.4rem;
+  border: none;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(49, 47, 45, 0.22);
+  transition: background var(--dur) var(--ease), transform 0.2s var(--ease);
+}
+.theater-cta:hover { background: var(--green); transform: translateX(-50%) translateY(-2px); }
+.theater-cta svg { width: 1.1rem; height: 1.1rem; }
 .tile {
   position: relative;
   background: var(--surface);
@@ -499,6 +604,10 @@ img, video { display: block; max-width: 100%; }
   transition: box-shadow var(--dur) var(--ease);
 }
 .tile video { width: 100%; height: 100%; object-fit: cover; background: #e7e2dd; }
+/* your own camera reads like a mirror, same as the pre-join preview — but not
+   while sharing a screen/movie, where a flipped share would look broken */
+#localVideo { transform: scaleX(-1); }
+.tile--sharing #localVideo { transform: none; }
 .tile--speaking { box-shadow: 0 0 0 3px var(--green) inset; }
 .tile__tag {
   position: absolute;
@@ -542,10 +651,6 @@ img, video { display: block; max-width: 100%; }
   transition: opacity var(--dur) var(--ease);
 }
 .avatar svg { width: clamp(3rem, 16vw, 5.5rem); height: auto; }
-
-.tile__wait { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; text-align: center; padding: 2rem; z-index: 1; }
-.tile__wait .gt { font-family: var(--serif); font-size: clamp(1.6rem, 3vw, 2.4rem); color: var(--ink); }
-.tile__wait p { color: var(--ink-2); font-size: var(--fs-sm); max-width: 30ch; }
 
 .dock { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; padding: 1rem var(--edge) 1.4rem; }
 
@@ -617,6 +722,24 @@ img, video { display: block; max-width: 100%; }
 }
 .ctrl:hover .ctrl__label { opacity: 1; }
 
+/* active Movie/Music mode reads as "on," same visual language as a pressed
+   control but tinted green so it reads as "sharing," not just "toggled" */
+#movieBtn[aria-pressed='true'],
+#musicBtn[aria-pressed='true'] { background: var(--green); color: #fff; border-color: var(--green); }
+#movieBtn[aria-pressed='true']:hover,
+#musicBtn[aria-pressed='true']:hover { background: var(--green-600); border-color: var(--green-600); }
+.ctrl:disabled { opacity: 0.4; cursor: not-allowed; }
+.ctrl:disabled:hover { background: var(--surface); color: var(--ink); border-color: var(--line); }
+
+.ctrl__badge {
+  position: absolute;
+  top: 0.35rem; right: 0.35rem;
+  width: 0.6rem; height: 0.6rem;
+  border-radius: 50%;
+  background: var(--red);
+  border: 2px solid var(--bg);
+}
+
 /* lobby */
 .lobby { flex: 1; display: grid; place-items: center; padding: clamp(4rem, 10vh, 7rem) var(--edge) var(--s4); }
 .card {
@@ -648,35 +771,59 @@ img, video { display: block; max-width: 100%; }
 .divide { display: flex; align-items: center; gap: 1rem; margin: var(--s3) 0; color: var(--ink-3); font-size: var(--fs-label); letter-spacing: 0.14em; text-transform: uppercase; }
 .divide::before, .divide::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 
-.invite {
-  display: none;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: var(--s3);
-  padding: 0.45rem 0.45rem 0.45rem 1.1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
+/* ---- lobby: camera preview step ("Ready to join?") ---------------------- */
+.preview-tile {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  border-radius: var(--r-lg);
+  overflow: hidden;
   background: var(--bg);
-  font-size: var(--fs-sm);
+  margin-bottom: var(--s3);
 }
-.invite.show { display: flex; }
-.invite code { flex: 1; font-family: var(--sans); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.invite button {
-  flex-shrink: 0;
+.preview-tile video { width: 100%; height: 100%; object-fit: cover; background: #e7e2dd; transform: scaleX(-1); }
+.preview-tile .avatar svg { width: clamp(2.5rem, 14vw, 4rem); }
+.preview-tile__controls {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: linear-gradient(rgba(49, 47, 45, 0), rgba(49, 47, 45, 0.28));
+}
+.preview-tile__controls .ctrl {
+  background: rgba(255, 252, 250, 0.92);
+  border-color: transparent;
+}
+.preview-tile__controls .ctrl[aria-pressed='true'] { background: var(--red); color: #fff; }
+.preview-sub { margin-bottom: var(--s3) !important; }
+
+.link-back {
+  display: block;
+  margin: var(--s2) auto 0;
+  background: none;
   border: none;
-  border-radius: var(--r-pill);
-  background: var(--green);
-  color: #fff;
+  color: var(--ink-2);
   font-family: var(--sans);
-  font-size: var(--fs-label);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 0.55rem 1rem;
+  font-size: var(--fs-sm);
   cursor: pointer;
-  transition: background var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease);
 }
-.invite button:hover { background: var(--green-600); }
+.link-back:hover { color: var(--ink); }
+
+/* ---- lobby: waiting-for-host step ---------------------------------------- */
+.waiting-spin {
+  width: 2.4rem; height: 2.4rem;
+  margin: 0 auto var(--s3);
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  border-top-color: var(--green);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .toast {
   position: fixed;
@@ -695,6 +842,151 @@ img, video { display: block; max-width: 100%; }
 
 .notice { margin-top: var(--s2); font-size: var(--fs-sm); color: var(--ink-2); border-left: 3px solid var(--red); padding-left: 0.8rem; }
 
+/* ---- now-sharing music pill (room bar) ----------------------------------- */
+.music-pill {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--r-pill);
+  background: var(--mint);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+.music-pill.show { display: inline-flex; }
+
+/* =========================================================================
+   Chat panel — slides in from the right; uses a class (not [hidden]) so the
+   transform transition actually runs. See assets/chat.js.
+   ========================================================================= */
+.chat {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 55;
+  width: min(23rem, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -12px 0 32px rgba(49, 47, 45, 0.1);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform var(--dur) var(--ease), visibility 0s linear var(--dur);
+}
+.chat.show { transform: translateX(0); visibility: visible; transition: transform var(--dur) var(--ease); }
+.chat__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.2rem;
+  border-bottom: 1px solid var(--line);
+}
+.chat__close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease);
+}
+.chat__close:hover { color: var(--ink); }
+.chat__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.msg { max-width: 90%; }
+.msg__meta { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.2rem; }
+.msg__name { font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+.msg__time { font-size: var(--fs-label); color: var(--ink-3); }
+.msg__text { font-size: var(--fs-sm); color: var(--ink); line-height: 1.5; overflow-wrap: anywhere; }
+.msg--me .msg__name { color: var(--green); }
+.msg--system { text-align: center; max-width: 100%; }
+.msg--system .msg__text { color: var(--ink-3); font-size: var(--fs-label); letter-spacing: 0.04em; text-transform: uppercase; }
+.chat__form {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 1.2rem;
+  border-top: 1px solid var(--line);
+}
+.chat__form input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--ink);
+  transition: border-color var(--dur) var(--ease);
+}
+.chat__form input:focus { outline: none; border-color: var(--green); }
+.chat__form button {
+  flex-shrink: 0;
+  width: 2.6rem; height: 2.6rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--green);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.chat__form button:hover { background: var(--green-600); }
+.chat__form button svg { width: 1.05rem; height: 1.05rem; }
+
+/* =========================================================================
+   Theater / focus view — local UI only, hides tiles/dock/chat, blows up the
+   current shared-content video. Uses a class for the same reason as .chat.
+   ========================================================================= */
+.theater {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: #0d0b06;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ease), visibility 0s linear var(--dur);
+}
+.theater.show { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity var(--dur) var(--ease); }
+.theater video { width: 100%; height: 100%; object-fit: contain; background: #0d0b06; }
+.theater__chrome {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem;
+  opacity: 1;
+  transition: opacity var(--dur) var(--ease);
+}
+.theater.idle .theater__chrome { opacity: 0; }
+.theater__exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1.3rem;
+  border: none;
+  border-radius: var(--r-pill);
+  background: rgba(255, 252, 250, 0.92);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.theater__exit:hover { background: #fff; }
+.theater__exit svg { width: 1.1rem; height: 1.1rem; }
+
 /* =========================================================================
    Responsive
    ========================================================================= */
@@ -705,6 +997,9 @@ img, video { display: block; max-width: 100%; }
   .feat { grid-template-columns: 2.5rem 1fr; }
   .feat__desc { grid-column: 2 / -1; }
   .foot__grid { grid-template-columns: 1fr; }
-  .stage { grid-template-columns: 1fr; }
+  .stage { grid-template-columns: 1fr !important; }
   .bar__nav .bar__link { display: none; }
+  .chat { width: 100vw; }
+  .knock-panel { top: auto; bottom: 6rem; right: var(--s2); left: var(--s2); width: auto; }
+  .invite-chip, .music-pill { display: none !important; }
 }
