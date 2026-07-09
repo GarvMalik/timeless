@@ -189,6 +189,12 @@ img, video { display: block; max-width: 100%; }
   color: #fff !important;
   transition: background var(--dur) var(--ease), transform 0.2s var(--ease);
 }
+/* .bar__nav a has the same specificity as .pill (one class + one element vs
+   one class) and actually wins, so the pill's own white text was silently
+   losing to the nav link's --ink-2 colour — nearly invisible on green.
+   Scoping to .bar__nav a.pill (higher specificity) fixes it for good. */
+.bar__nav a.pill,
+.bar__nav a.pill:hover { color: #fff; }
 .pill:hover { background: var(--green-600); transform: translateY(-2px); }
 
 /* =========================================================================
@@ -789,8 +795,14 @@ img, video { display: block; max-width: 100%; }
 /* ---- lobby: camera preview step ("Ready to join?") ---------------------- */
 .preview-tile {
   position: relative;
-  aspect-ratio: 4 / 3;
   width: 100%;
+  /* aspect-ratio alone made this too tall on short viewports — the lobby
+     card's own overflow-y:auto was masking it, but "scroll to see the
+     Continue button" still isn't "fits the viewport." A height capped to
+     the viewport (with a sane absolute ceiling) shrinks gracefully instead;
+     object-fit: cover on the video absorbs the change, same as everywhere
+     else video is shown here. */
+  height: min(45vh, 22rem);
   border-radius: var(--r-lg);
   overflow: hidden;
   background: var(--bg);
@@ -1003,38 +1015,16 @@ img, video { display: block; max-width: 100%; }
 .theater__exit svg { width: 1.1rem; height: 1.1rem; }
 
 /* =========================================================================
-   Dark cinematic call surface
+   Floating dark toolbar over the (still light) call surface
    Scoped to `.room--live`, added by call.js's enterRoomView() the moment
-   you're actually in a call — the lobby (name/choose/preview/waiting) stays
-   the warm light system throughout, matching Meet's own pattern of a light
-   pre-join lobby and a dark live-call surface. Re-themed mostly by
-   remapping the core tokens (most components already consume var(--surface)
-   /var(--ink)/var(--line) etc.), plus a few explicit overrides for the
-   handful of places that use a hardcoded literal or the toolbar's deeper
-   structural redesign below.
+   you're actually in a call. Earlier this only styled the *dock* dark, but
+   also remapped the core tokens so the whole call surface (room bar, stage,
+   tiles) went black — reverted per feedback: the light system stays
+   everywhere except the dock, which floats over it as its own dark,
+   translucent, blurred pill, the same way a dark toolbar can float over a
+   light canvas in plenty of real apps. Only the toolbar-specific rules
+   below remain; nothing here touches --bg/--surface/--ink anymore.
    ========================================================================= */
-.room--live {
-  --bg: #0d0b06;
-  --surface: rgba(255, 255, 255, 0.06);
-  --ink: #f5f2ec;
-  --ink-2: rgba(245, 242, 236, 0.72);
-  --ink-3: rgba(245, 242, 236, 0.45);
-  --line: rgba(245, 242, 236, 0.14);
-}
-.room__bar, .stage { background: var(--bg); } /* no-op in the light lobby context; picks up the dark remap above once live */
-
-.room--live .tile__tag,
-.room--live .tile__badge {
-  background: rgba(13, 11, 6, 0.6);
-  color: #f5f2ec;
-}
-.room--live .music-pill { color: #241f14; } /* stays dark-on-pastel regardless of page theme, like the invite-chip's button text */
-.room--live .knock {
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
-}
-.room--live .chat {
-  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.4);
-}
 
 /* ---- the toolbar redesign itself: one floating cohesive bar, not a row of
    separate circles with gaps between them ---------------------------------- */
