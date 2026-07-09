@@ -394,7 +394,12 @@ img, video { display: block; max-width: 100%; }
 /* =========================================================================
    Call room
    ========================================================================= */
-.room { min-height: 100svh; display: flex; flex-direction: column; }
+/* height (not min-height) is what makes this a real budget the flex column
+   can shrink its children against — a min-height is only a floor, so
+   without this the page grows past the viewport (e.g. an empty room's
+   placeholder + dock) instead of .stage shrinking to fit, and the whole
+   page scrolls. See ARCHITECTURE.md if this needs revisiting. */
+.room { height: 100svh; overflow: hidden; display: flex; flex-direction: column; }
 .room__bar {
   display: flex;
   align-items: center;
@@ -729,8 +734,29 @@ img, video { display: block; max-width: 100%; }
   border: 2px solid var(--bg);
 }
 
+/* loading state — e.g. the camera re-acquiring hardware after being fully
+   stopped. The icon hides, this spinner takes its place; aria-busy on the
+   button itself covers the a11y side. */
+.ctrl__spinner {
+  width: 1.1rem; height: 1.1rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.7;
+  animation: spin 0.8s linear infinite;
+}
+.ctrl[aria-busy='true'] svg { display: none; }
+.ctrl[aria-busy='true'] { cursor: wait; }
+
 /* lobby */
-.lobby { flex: 1; display: grid; place-items: center; padding: clamp(4rem, 10vh, 7rem) var(--edge) var(--s4); }
+.lobby {
+  flex: 1;
+  min-height: 0; /* lets this shrink against .room's fixed height instead of forcing it taller */
+  display: grid;
+  place-items: center;
+  padding: clamp(4rem, 10vh, 7rem) var(--edge) var(--s4);
+  overflow-y: auto; /* a genuinely tiny viewport scrolls the card, never the page */
+}
 .card {
   width: min(42rem, 100%);
   border-radius: var(--r-lg);
@@ -975,6 +1001,116 @@ img, video { display: block; max-width: 100%; }
 }
 .theater__exit:hover { background: #fff; }
 .theater__exit svg { width: 1.1rem; height: 1.1rem; }
+
+/* =========================================================================
+   Dark cinematic call surface
+   Scoped to `.room--live`, added by call.js's enterRoomView() the moment
+   you're actually in a call — the lobby (name/choose/preview/waiting) stays
+   the warm light system throughout, matching Meet's own pattern of a light
+   pre-join lobby and a dark live-call surface. Re-themed mostly by
+   remapping the core tokens (most components already consume var(--surface)
+   /var(--ink)/var(--line) etc.), plus a few explicit overrides for the
+   handful of places that use a hardcoded literal or the toolbar's deeper
+   structural redesign below.
+   ========================================================================= */
+.room--live {
+  --bg: #0d0b06;
+  --surface: rgba(255, 255, 255, 0.06);
+  --ink: #f5f2ec;
+  --ink-2: rgba(245, 242, 236, 0.72);
+  --ink-3: rgba(245, 242, 236, 0.45);
+  --line: rgba(245, 242, 236, 0.14);
+}
+.room__bar, .stage { background: var(--bg); } /* no-op in the light lobby context; picks up the dark remap above once live */
+
+.room--live .tile__tag,
+.room--live .tile__badge {
+  background: rgba(13, 11, 6, 0.6);
+  color: #f5f2ec;
+}
+.room--live .music-pill { color: #241f14; } /* stays dark-on-pastel regardless of page theme, like the invite-chip's button text */
+.room--live .knock {
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+}
+.room--live .chat {
+  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- the toolbar redesign itself: one floating cohesive bar, not a row of
+   separate circles with gaps between them ---------------------------------- */
+.room--live .dock {
+  width: fit-content;
+  margin: 0 auto 1.25rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(13, 11, 6, 0.72);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    0 2px 10px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  gap: 0.25rem;
+}
+.room--live .ctrl {
+  background: transparent;
+  border-color: transparent;
+  color: rgba(245, 242, 236, 0.86);
+}
+.room--live .ctrl:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: transparent;
+}
+.room--live .ctrl[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-color: transparent;
+}
+/* muted/off reads as a warm-red tint, matching the leave button's red —
+   same semantic language as the light theme, re-tuned for a dark bar */
+.room--live #micBtn[aria-pressed='true'],
+.room--live #camBtn[aria-pressed='true'] {
+  background: rgba(225, 37, 46, 0.22);
+  color: #ffb3ae;
+}
+.room--live .ctrl__label { background: rgba(255, 255, 255, 0.95); color: #17130c; }
+.room--live .ctrl:disabled { opacity: 0.32; }
+.room--live .ctrl:disabled:hover { background: transparent; color: rgba(245, 242, 236, 0.86); }
+.room--live .ctrl--end { color: #fff; } /* stays the solid --red fill, just dropping the light-theme border-color rule */
+
+/* ---- mic waveform — the static glyph crossfades to a small live equalizer
+   while you're actually speaking, layered on top of the glow ring shipped
+   earlier (both driven by the same mic-level/speaking signal, no new audio
+   analysis). Reduced motion is already handled by the sitewide blanket rule
+   (animation-duration -> 0.001ms), same as every other infinite loop here. */
+#micBtn { overflow: hidden; }
+#micBtn .i-on { transition: opacity 0.25s var(--ease); }
+#micBtn.ctrl--speaking .i-on { opacity: 0; }
+.ctrl__wave {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.25s var(--ease), transform 0.25s var(--ease);
+  pointer-events: none;
+}
+.ctrl__wave span {
+  width: 3px;
+  height: 30%;
+  border-radius: 2px;
+  background: currentColor;
+  animation: ctrl-wave 0.9s ease-in-out infinite;
+}
+.ctrl__wave span:nth-child(1) { animation-delay: -0.3s; }
+.ctrl__wave span:nth-child(2) { animation-delay: -0.15s; }
+.ctrl__wave span:nth-child(3) { animation-delay: 0s; }
+@keyframes ctrl-wave { 0%, 100% { height: 28%; } 50% { height: 85%; } }
+#micBtn.ctrl--speaking .ctrl__wave { opacity: 1; transform: scale(1); }
 
 /* =========================================================================
    Responsive

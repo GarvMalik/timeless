@@ -35,6 +35,18 @@ gets rough well before "large meeting" territory. Past ~6 participants,
 Timeless shows a quiet, non-blocking advisory suggesting people turn their
 cameras off — never a hard cap.
 
+**ICE servers: STUN alone isn't enough for reliable connections.** STUN only
+helps two peers *discover* their own public address — it does nothing for two
+peers behind symmetric NATs or restrictive/corporate firewalls that can't
+open a direct path to each other at all. Without a relay fallback, those
+calls simply fail to connect, with no recovery possible. `PEER_OPTS` in
+`assets/room.js` adds a free public TURN relay (Open Relay Project) alongside
+STUN for exactly this case. Worth being precise about the trust model here,
+same spirit as the mesh-vs-SFU reasoning above: a TURN server is a real third
+party in the connection path when it's used, but it only ever forwards
+already-encrypted DTLS-SRTP packets — it has no way to decrypt media. It's a
+reliability improvement, not a privacy concession.
+
 ## Topology
 
 ```
@@ -204,6 +216,57 @@ when the underlying content itself actually stops (the sharer ends it, the
 browser's own "Stop sharing" control is used, or the shared tab/window
 closes) — a real state change everyone needs to see, not a preference.
 
+## Audio profiles: voice, music, movie
+
+Three distinct, explicit constraint/bitrate profiles, rather than one
+default used everywhere:
+
+- **Voice** (camera calls, `assets/call.js`'s `acquireCamera`) —
+  `echoCancellation: true, noiseSuppression: true, autoGainControl: true`.
+  Good defaults for speech, made explicit rather than left to whatever a
+  given browser's implicit default happens to be.
+- **Content audio** (Music/Movie Mode, shared pipeline in
+  `assets/content-share.js`) — the opposite:
+  `echoCancellation: false, noiseSuppression: false, autoGainControl: false`
+  on the `getDisplayMedia` request. Display audio already bypasses mic-only
+  processing by default in most browsers; disabling these explicitly is
+  belt-and-suspenders and documents the intent in code, not just a comment —
+  echo cancellation tuned for silence detection, or noise suppression,
+  actively damages music/movie audio.
+- **Bitrate** — Opus's default is speech-tuned (~24-32 kbps), nowhere near
+  enough for music or a movie's soundtrack. `_tuneAudioEncoding` raises the
+  content-audio sender's `maxBitrate` to 128 kbps via
+  `RTCRtpSender.setParameters` for both Music and Movie Mode. This applies
+  retroactively too: a participant who joins **while** content is already
+  being shared gets the same tuning applied to their connection the moment
+  they connect (`_applyCurrentContentTo`) — otherwise they'd be seeded from
+  the sharer's stale camera/mic, since a new connection is negotiated with
+  `room.localStream`'s tracks, and content sharing only touches individual
+  senders, not that base stream.
+- **Honest limitation: no Opus stereo.** True stereo needs an SDP-level
+  `stereo=1` fmtp parameter, which isn't reachable through
+  `RTCRtpSender.setParameters` and isn't safely reachable through PeerJS's
+  internal offer/answer handling without risking connection stability by
+  hand-editing SDP underneath it. The bitrate increase above is the real,
+  safely-implementable win; stereo would need deeper SDP-level negotiation
+  control than this architecture currently takes on.
+
+## Reconnection
+
+`assets/room.js` watches each connection's `iceConnectionState` and attempts
+real recovery, not just a "trouble" banner: a `disconnected` state gets a
+5-second grace period to self-resolve (common for a brief wifi hiccup or NAT
+rebinding) before calling `pc.restartIce()`; a `failed` state gets one
+immediately. This is a standards-based recovery path — PeerJS listens for the
+resulting `negotiationneeded` internally, so no signalling changes were
+needed to support it.
+
+What this doesn't do: resume a session after a connection is fully and
+permanently gone (e.g. the other tab actually closed, or `restartIce()`
+itself can't find a path even with TURN available) — that's not a
+"reconnect," that's someone having left, and the existing participant-left
+handling covers it correctly.
+
 ## Known limitations
 
 - **New joins depend on the host staying reachable.** If the host's tab
@@ -217,6 +280,8 @@ closes) — a real state change everyone needs to see, not a preference.
 - **Mesh has a practical ceiling.** Designed and tuned for ~4-6 participants;
   past that, a non-blocking advisory suggests turning cameras off, but
   nothing is hard-blocked.
-- **Reconnection isn't handled.** If a participant's connection drops
-  entirely (not just degrades), they need to rejoin — there's no automatic
-  session resume. This was true before this feature set and remains true now.
+- **Reconnection is best-effort, not guaranteed.** `restartIce()` (see
+  "Reconnection" above) recovers many transient network hiccups, but if a
+  connection is fully and permanently gone — the other side actually closed,
+  or no path exists even via TURN — there's no automatic session resume;
+  that participant needs to rejoin.

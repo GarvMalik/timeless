@@ -26,11 +26,26 @@ const CODE_LEN = 10;
 // Explicit, secure signalling config — pinned so it always uses wss:// and
 // matches the page's Content-Security-Policy connect-src. The broker only
 // relays connection setup; audio/video/chat never touch it (peer-to-peer).
+//
+// iceServers: STUN alone can't help two peers behind symmetric NATs or
+// restrictive/corporate firewalls find each other — without a relay
+// fallback, those calls simply fail to connect. The TURN entries below (Open
+// Relay Project's public, free relay) only ever forward already-encrypted
+// DTLS-SRTP packets when a direct path can't be found — they cannot decrypt
+// media. See SECURITY.md / ARCHITECTURE.md for the full trust-model note.
 const PEER_OPTS = {
   host: '0.peerjs.com',
   port: 443,
   secure: true,
-  config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] },
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun.relay.metered.ca:80' },
+      { urls: 'turn:global.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:global.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:global.relay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+    ],
+  },
 };
 
 const NAME_MAX = 40;
@@ -149,6 +164,11 @@ class Participant {
     this.state = { cam: true, mic: true, content: 'none' };
     this.meter = null;
     this.troubled = false;
+    this.reconnectTimer = null;
+    // cached senders — see replaceSenderTrack() for why these must be
+    // cached rather than looked up fresh by track.kind every time
+    this.videoSender = null;
+    this.audioSender = null;
   }
 
   applyName(name) {
@@ -182,6 +202,7 @@ class Participant {
 
   destroy() {
     this.stopMeter();
+    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
     try { if (this.call) this.call.close(); } catch (e) {}
     try { if (this.conn) this.conn.close(); } catch (e) {}
     this.tile.remove();
@@ -245,9 +266,49 @@ export class Room extends EventTarget {
     this.localAvatarEl.hidden = this.localState.cam || this.localState.content !== 'none';
   }
 
-  setLocalCam(on) {
+  // Turning the camera "off" used to just set track.enabled = false — per
+  // the WebRTC spec that mutes the track's *output* (frames become silent)
+  // but the underlying hardware capture keeps running, so the camera's LED
+  // stays lit. That's a real bug, not a cosmetic one. Fix: actually stop and
+  // release the track when going off, and re-acquire a fresh one (no new
+  // permission prompt — the origin already has a grant) when going back on.
+  //
+  // Both directions are genuinely async (stopping still awaits the sender
+  // replaceTrack; turning back on awaits a fresh getUserMedia). A busy guard
+  // is required, not optional — without it, a rapid off/on/off double-click
+  // (or a slow re-acquire overlapping the next click) races two in-flight
+  // calls against the same track/sender state and can leave things
+  // inconsistent. Confirmed by testing rapid toggles end-to-end.
+  async setLocalCam(on) {
+    if (this._camBusy) return;
+    this._camBusy = true;
+    this.dispatchEvent(new CustomEvent('cam-loading', { detail: { loading: true } }));
+    try {
+      if (on) {
+        let track;
+        try {
+          const cam = await navigator.mediaDevices.getUserMedia({ video: true });
+          track = cam.getVideoTracks()[0];
+        } catch (e) {
+          this.dispatchEvent(new CustomEvent('cam-error', { detail: { error: e } }));
+          return; // stay off — camera unavailable (unplugged, permission revoked, in use elsewhere)
+        }
+        await this.replaceSenderTrack('video', track);
+        this.localStream.addTrack(track);
+        this.localVideoEl.srcObject = this.localStream;
+      } else {
+        const track = this.localStream.getVideoTracks()[0];
+        if (track) {
+          this.localStream.removeTrack(track);
+          track.stop(); // <-- this is what actually turns off the hardware/LED
+        }
+        await this.replaceSenderTrack('video', null);
+      }
+    } finally {
+      this._camBusy = false;
+      this.dispatchEvent(new CustomEvent('cam-loading', { detail: { loading: false } }));
+    }
     this.localState.cam = on;
-    this.localStream.getVideoTracks().forEach((t) => { t.enabled = on; });
     this._updateLocalAvatar();
     this._broadcastState();
     this.dispatchEvent(new CustomEvent('local-state', { detail: { ...this.localState } }));
@@ -269,13 +330,28 @@ export class Room extends EventTarget {
     this.dispatchEvent(new CustomEvent('local-state', { detail: { ...this.localState } }));
   }
 
-  // ---- generic replace-track fan-out (camera<->screen, and the shared
-  // content-share pipeline all funnel through this — see content-share.js) --
+  // ---- generic replace-track fan-out (camera<->screen, camera on/off, and
+  // the shared content-share pipeline all funnel through this — see
+  // content-share.js) -------------------------------------------------------
+  //
+  // Senders are cached on the Participant the first time they're found by
+  // kind, then always reused. This matters once a track has ever been
+  // replaced with `null` (camera fully stopped, releasing hardware — see
+  // setLocalCam): at that point `sender.track` is null, so a fresh
+  // `getSenders().find(s => s.track && s.track.kind === kind)` lookup can no
+  // longer find it, and turning the camera back on would have nowhere to
+  // send the new track. Caching the reference the first time (while the
+  // original non-null track still identifies it) sidesteps that entirely.
   async replaceSenderTrack(kind, track) {
+    const cacheKey = kind === 'video' ? 'videoSender' : 'audioSender';
     const jobs = [];
     this.participants.forEach((p) => {
       if (!p.call || !p.call.peerConnection) return;
-      const sender = p.call.peerConnection.getSenders().find((s) => s.track && s.track.kind === kind);
+      let sender = p[cacheKey];
+      if (!sender) {
+        sender = p.call.peerConnection.getSenders().find((s) => s.track && s.track.kind === kind);
+        if (sender) p[cacheKey] = sender;
+      }
       if (sender) jobs.push(sender.replaceTrack(track));
     });
     await Promise.all(jobs);
@@ -559,6 +635,14 @@ export class Room extends EventTarget {
       p.video.srcObject = stream;
       p.updateAvatar();
       p.startMeter();
+      // by now the connection is fully negotiated with real tracks, so this
+      // is a safe, guaranteed-non-null moment to cache the senders — see
+      // replaceSenderTrack() for why the cache exists at all
+      const pc = call.peerConnection;
+      if (pc) {
+        if (!p.videoSender) p.videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video') || null;
+        if (!p.audioSender) p.audioSender = pc.getSenders().find((s) => s.track && s.track.kind === 'audio') || null;
+      }
       this.dispatchEvent(new CustomEvent('participant-connected', { detail: { participant: p } }));
     });
     call.on('close', () => this._removeParticipant(p.peerId));
@@ -573,7 +657,40 @@ export class Room extends EventTarget {
           p.troubled = troubled;
           this._emitQuality();
         }
+        this._handleIceState(p, pc, s);
       });
+    }
+  }
+
+  // ---- reconnect: a real recovery attempt, not just a "trouble" banner ----
+  // `disconnected` often self-resolves in a second or two (brief NAT
+  // rebinding, a wifi hiccup); restartIce() is only worth the renegotiation
+  // cost once it's had a moment to recover on its own. `failed` never
+  // self-resolves, so that gets a restart immediately.
+  _handleIceState(p, pc, state) {
+    if (state === 'connected' || state === 'completed') {
+      if (p.reconnectTimer) { clearTimeout(p.reconnectTimer); p.reconnectTimer = null; }
+      return;
+    }
+    if (state === 'failed') {
+      if (p.reconnectTimer) { clearTimeout(p.reconnectTimer); p.reconnectTimer = null; }
+      this._restartIce(pc);
+      return;
+    }
+    if (state === 'disconnected' && !p.reconnectTimer) {
+      p.reconnectTimer = setTimeout(() => {
+        p.reconnectTimer = null;
+        if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') this._restartIce(pc);
+      }, 5000);
+    }
+  }
+
+  _restartIce(pc) {
+    try {
+      if (typeof pc.restartIce === 'function') pc.restartIce();
+    } catch (e) {
+      // best-effort — if the browser can't restart ICE, the existing
+      // troubled/quality-changed banner already keeps the user informed
     }
   }
 

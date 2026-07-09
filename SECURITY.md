@@ -104,7 +104,25 @@ frame.
 - `referrer: no-referrer` and `rel="noopener noreferrer"` on outbound links stop
   URL/room-code leakage via the `Referer` header or `window.opener`.
 - Camera and microphone are requested only on an explicit click, and every track
-  is stopped on leave.
+  is stopped on leave — including when the camera itself is toggled off
+  mid-call, which now actually stops the hardware track (not just mutes it;
+  see `assets/room.js`'s `setLocalCam`) so the camera's hardware indicator
+  light genuinely turns off, not just the on-screen preview.
+
+### 10. TURN relay — encrypted-only, not a media access point
+`PEER_OPTS` (`assets/room.js`) adds a free public TURN relay (Open Relay
+Project) alongside STUN, so two participants behind restrictive/symmetric-NAT
+networks can still connect (STUN alone can't help there — see
+`ARCHITECTURE.md`). This is a real third party in the connection-setup path
+when it's actually used, so it's worth being precise: a TURN server only ever
+relays already-encrypted DTLS-SRTP packets — it has no key material and
+cannot decrypt media. It's a reliability improvement, not a new party with
+access to your call.
+
+*Not a security control, but adjacent and worth naming:* `assets/room.js`
+also now attempts `pc.restartIce()` on a degraded/failed connection before
+giving up — a resilience mechanism (see `ARCHITECTURE.md` → "Reconnection"),
+not a security boundary.
 
 ## Honest limitations
 
@@ -119,6 +137,35 @@ frame.
 - **New joins depend on the host staying reachable** — a mesh limitation of
   not running a server, documented in full in `ARCHITECTURE.md` → "Known
   limitations."
+
+## Not applicable — and why
+
+A generic "production security checklist" includes a lot of controls that
+presuppose a backend, a database, or a login system: authentication and
+authorization, session management, JWT/refresh-token handling, secure
+cookies, CSRF protection, SQL/NoSQL injection, rate limiting and brute-force
+protection, file-upload security, dependency/audit-logging pipelines, request
+signing, server TLS/certificate configuration.
+
+Timeless has none of those things to protect, on purpose — there is no
+server we run, no database, no accounts, no login, no file uploads, no API
+endpoints. That's not an oversight this document is working around; it's the
+same architectural decision documented throughout `ARCHITECTURE.md` (mesh
+instead of a media server, specifically chosen for privacy and to avoid
+introducing exactly this category of infrastructure and its attack surface).
+Adding session/JWT/SQL-injection-style controls here wouldn't be a smaller
+version of that work — it would mean building the backend this project
+deliberately doesn't have. If that's ever wanted, it's the SFU/server fork
+described in `ARCHITECTURE.md`, not an incremental addition to what exists
+today.
+
+What *does* exist in that spirit and is genuinely reviewed above: the room
+code is the de facto credential (control 5), the host admission gate is the
+closest thing to "authorization" this architecture has (control 7, with its
+limits stated plainly), and the CSP/self-hosted-script/XSS discipline
+(controls 1-3) are this app's actual equivalent of "input validation and
+output sanitization" for the one real trust boundary it has — a room code
+and a handful of small JSON messages, not a request body or a form upload.
 
 ## Reporting
 

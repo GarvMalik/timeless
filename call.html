@@ -25,7 +25,7 @@
     <link rel="stylesheet" href="assets/styles.css" />
   </head>
   <body>
-    <div class="room">
+    <div class="room" id="roomEl">
       <div class="room__bar">
         <a class="room__mark" href="index.html">
           <span class="bar__dot" aria-hidden="true"></span>Timeless
@@ -231,6 +231,7 @@
           <svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" hidden aria-hidden="true">
             <path d="M9 9v-3a3 3 0 0 1 6 0v5M15 12.5a3 3 0 0 1-4.5 1.5M5 11a7 7 0 0 0 10.5 6M12 18v3M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
+          <span class="ctrl__wave" aria-hidden="true"><span></span><span></span><span></span></span>
         </button>
 
         <button class="ctrl" id="camBtn" aria-pressed="false" aria-label="Turn camera off">
@@ -241,6 +242,7 @@
           <svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" hidden aria-hidden="true">
             <path d="M16 10l6-3v10l-6-3M2 6h9M2 6v12h12M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
+          <span class="ctrl__spinner" hidden aria-hidden="true"></span>
         </button>
 
         <button class="ctrl" id="movieBtn" aria-pressed="false" aria-label="Start Movie Mode">

@@ -15,6 +15,7 @@ import { initTheater } from './theater.js';
 const $ = (id) => document.getElementById(id);
 
 // ---- element refs -----------------------------------------------------------
+const roomEl = $('roomEl');
 const lobby = $('lobby');
 const stage = $('stage');
 const dock = $('dock');
@@ -213,10 +214,17 @@ function enterRoomView() {
   lobby.hidden = true;
   stage.hidden = false;
   dock.hidden = false;
+  roomEl.classList.add('room--live'); // the dark cinematic call theme — see styles.css
 }
 
+// Voice profile: good speech defaults, made explicit rather than left to
+// whatever a given browser's implicit default happens to be. This is
+// distinct from — and never applied to — Music/Movie Mode's content audio,
+// which explicitly disables all three (see content-share.js).
+const VOICE_AUDIO_CONSTRAINTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+
 async function acquireCamera() {
-  return navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  return navigator.mediaDevices.getUserMedia({ video: true, audio: VOICE_AUDIO_CONSTRAINTS });
 }
 
 function applyPreviewAvatarState() {
@@ -406,11 +414,22 @@ function syncDockUI(e) {
 }
 
 micBtn.addEventListener('click', () => room.setLocalMic(!room.localState.mic));
-camBtn.addEventListener('click', () => { if (room.localState.content === 'none') room.setLocalCam(!room.localState.cam); });
+camBtn.addEventListener('click', () => {
+  if (room.localState.content === 'none') room.setLocalCam(!room.localState.cam);
+});
 
 room.addEventListener('mic-level', (e) => {
   micBtn.classList.toggle('ctrl--speaking', e.detail.speaking);
 });
+
+// re-acquiring the camera (after it was fully stopped) is a real async
+// operation now, not an instant flag flip — reflect that honestly
+room.addEventListener('cam-loading', (e) => {
+  camBtn.disabled = e.detail.loading;
+  camBtn.setAttribute('aria-busy', e.detail.loading ? 'true' : 'false');
+  camBtn.querySelector('.ctrl__spinner').hidden = !e.detail.loading;
+});
+room.addEventListener('cam-error', (e) => showToast(mediaError(e.detail.error)));
 
 // =========================================================================
 // dock — Movie Mode / Music Mode
@@ -519,10 +538,12 @@ joinForm.addEventListener('submit', (e) => {
   goToPreview();
 });
 
-previewContinueBtn.addEventListener('click', () => {
+previewContinueBtn.addEventListener('click', async () => {
   room.setLocalStream(previewStream);
-  // carry over any mic/camera choice made during the preview
-  if (previewStream.getVideoTracks()[0]?.enabled === false) room.setLocalCam(false);
+  // carry over any mic/camera choice made during the preview — awaited so
+  // a camera turned off in preview is actually stopped/released (not just
+  // muted) before the room opens, same guarantee as toggling it mid-call
+  if (previewStream.getVideoTracks()[0]?.enabled === false) await room.setLocalCam(false);
   if (previewStream.getAudioTracks()[0]?.enabled === false) room.setLocalMic(false);
   syncDockUI();
 
