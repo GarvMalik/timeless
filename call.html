@@ -223,7 +223,7 @@
 
       <!-- control dock -->
       <div class="dock" id="dock" hidden>
-        <button class="ctrl" id="micBtn" aria-pressed="false" aria-label="Mute microphone">
+        <button class="ctrl" id="micBtn" aria-pressed="false" aria-label="Mute microphone" title="A green glow means your mic is registering sound">
           <span class="ctrl__label" id="micLabel">Microphone</span>
           <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
             <rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke-linecap="round" />
@@ -232,10 +232,6 @@
             <path d="M9 9v-3a3 3 0 0 1 6 0v5M15 12.5a3 3 0 0 1-4.5 1.5M5 11a7 7 0 0 0 10.5 6M12 18v3M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
-
-        <div class="meter" id="micMeter" aria-hidden="true" title="Your mic level — this is roughly what reaches them">
-          <span></span><span></span><span></span><span></span>
-        </div>
 
         <button class="ctrl" id="camBtn" aria-pressed="false" aria-label="Turn camera off">
           <span class="ctrl__label">Camera</span>

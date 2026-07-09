@@ -654,27 +654,16 @@ img, video { display: block; max-width: 100%; }
 
 .dock { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; padding: 1rem var(--edge) 1.4rem; }
 
-/* ---- mic level meter — reflects the local mic's captured input level --- */
-.meter {
-  display: inline-flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 1.7rem;
-  padding: 0 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  background: var(--surface);
+/* ---- mic level: a soft glow on the mic button itself, not a separate
+   element — reflects the local mic's captured input level so you can see
+   your voice is registering without adding another thing to look at ------- */
+.ctrl--speaking {
+  animation: mic-pulse 1.6s var(--ease) infinite;
 }
-.meter span {
-  width: 4px;
-  min-height: 3px;
-  height: 15%;
-  border-radius: 2px;
-  background: var(--ink-3);
-  transition: height 0.1s linear, background var(--dur) var(--ease);
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--green), 0 0 0 8px rgba(27, 148, 90, 0.22); }
+  50% { box-shadow: 0 0 0 3px var(--green), 0 0 0 11px rgba(27, 148, 90, 0.05); }
 }
-.meter[data-active='true'] span { background: var(--green); }
-.meter[data-muted='true'] span { background: var(--ink-3) !important; height: 15% !important; }
 .ctrl {
   position: relative;
   width: 3.3rem; height: 3.3rem;

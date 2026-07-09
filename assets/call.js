@@ -68,8 +68,6 @@ const tileTemplate = $('tileTemplate');
 
 const micBtn = $('micBtn');
 const micLabel = $('micLabel');
-const micMeter = $('micMeter');
-const micMeterBars = micMeter.querySelectorAll('span');
 const camBtn = $('camBtn');
 const movieBtn = $('movieBtn');
 const musicBtn = $('musicBtn');
@@ -399,7 +397,7 @@ function syncDockUI(e) {
   setPressed(micBtn, !state.mic);
   swapIcon(micBtn, !state.mic);
   micBtn.setAttribute('aria-label', state.mic ? 'Mute microphone' : 'Unmute microphone');
-  micMeter.setAttribute('data-muted', state.mic ? 'false' : 'true');
+  if (!state.mic) micBtn.classList.remove('ctrl--speaking'); // no glow while muted
 
   setPressed(camBtn, !state.cam);
   swapIcon(camBtn, !state.cam);
@@ -411,13 +409,7 @@ micBtn.addEventListener('click', () => room.setLocalMic(!room.localState.mic));
 camBtn.addEventListener('click', () => { if (room.localState.content === 'none') room.setLocalCam(!room.localState.cam); });
 
 room.addEventListener('mic-level', (e) => {
-  if (!room.localState.mic) return; // bars already forced flat via [data-muted]
-  const level = e.detail.level;
-  micMeter.setAttribute('data-active', level > 0.03 ? 'true' : 'false');
-  micMeterBars.forEach((bar, i) => {
-    const threshold = (i + 1) / micMeterBars.length;
-    bar.style.height = (level >= threshold ? Math.min(100, 25 + level * 75) : 15) + '%';
-  });
+  micBtn.classList.toggle('ctrl--speaking', e.detail.speaking);
 });
 
 // =========================================================================

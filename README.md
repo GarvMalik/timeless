@@ -87,10 +87,10 @@ A few things happen automatically:
   simple face glyph on a random pastel background while that person's camera
   is off (a tiny presence signal exchanged over a data channel is what lets
   your camera state show up on *their* screen too).
-- **Mic level meter** — a small bar-graph next to the mic button reflects what
-  your microphone is actually picking up, so you can see your voice is
-  registering. Whoever's currently making sound gets a subtle ring around
-  their tile.
+- **Mic level, on the button itself** — the mic button glows a soft green when
+  your microphone is actually picking up sound, so you can see your voice is
+  registering without a separate meter to watch. Whoever's currently making
+  sound also gets a subtle ring around their tile.
 - **Connection banner** — if your internet drops, the connection degrades, or
   the call gets large enough that turning cameras off would help, a slim
   banner says so and clears itself once things recover. It never blocks the

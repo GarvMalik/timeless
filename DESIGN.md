@@ -82,10 +82,10 @@ buttons lift/darken on hover, arrows nudge. Disabled under
   a participant's camera is off. A colour is chosen at random (from the pastel
   palette) once per session and paired with a single consistent face glyph —
   the colour varies, the mark never does.
-- **`.meter`** — a small live bar-graph next to the mic control reflecting the
-  local mic's captured input level, so a speaker can see their voice is
-  registering. A `.tile--speaking` ring highlights whichever tile (you or them)
-  is currently making sound.
+- **`.ctrl--speaking`** — a soft green glow pulses directly on the mic button
+  itself when your voice registers, rather than a separate meter element —
+  one less thing to look at. A `.tile--speaking` ring highlights whichever
+  tile (you or them) is currently making sound, same green, same rhythm.
 - **`.banner`** — one shared slim, dismissible, non-blocking bar: network
   trouble, the quiet large-call performance advisory, and the "back online"
   flash all use the same slot (network trouble always wins). Never blocks
