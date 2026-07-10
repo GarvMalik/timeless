@@ -7,10 +7,10 @@
    See ARCHITECTURE.md for the full protocol this orchestrates.
    ========================================================================= */
 
-import { Room, isValidCode } from './room.js?v=6';
-import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=6';
-import { initChat } from './chat.js?v=6';
-import { initTheater } from './theater.js?v=6';
+import { Room, isValidCode } from './room.js?v=7';
+import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=7';
+import { initChat } from './chat.js?v=7';
+import { initTheater } from './theater.js?v=7';
 
 const $ = (id) => document.getElementById(id);
 
@@ -206,8 +206,13 @@ window.addEventListener('online', () => { if (bannerShownFor === 'offline') flas
 // =========================================================================
 // lobby step machine
 // =========================================================================
+const lobbyCard = document.querySelector('.lobby .card');
+
 function showStep(id) {
   [nameForm, stepChoice, stepPreview, stepWaiting].forEach((el) => { el.hidden = el.id !== id; });
+  // the preview step widens the card into a Meet-style two-column layout
+  // (big camera preview left, actions vertically centered right)
+  lobbyCard.classList.toggle('card--preview', id === 'stepPreview');
 }
 
 function enterRoomView() {

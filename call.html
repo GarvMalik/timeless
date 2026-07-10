@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Noto+Sans+Display:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/styles.css?v=6" />
+    <link rel="stylesheet" href="assets/styles.css?v=7" />
   </head>
   <body>
     <div class="room" id="roomEl">
@@ -141,9 +141,11 @@
                 </button>
               </div>
             </div>
-            <p class="sub preview-sub" id="previewSub">Just you so far.</p>
-            <button class="btn btn--block" id="previewContinueBtn" type="button">Open the room</button>
-            <button class="link-back" id="previewBackBtn" type="button">‹ Back</button>
+            <div class="preview-actions">
+              <p class="sub preview-sub" id="previewSub">Just you so far.</p>
+              <button class="btn btn--block" id="previewContinueBtn" type="button">Open the room</button>
+              <button class="link-back" id="previewBackBtn" type="button">‹ Back</button>
+            </div>
           </div>
 
           <!-- STEP 4 — guests only: the host must let you in -->
@@ -318,6 +320,6 @@
     <div class="toast" id="toast"></div>
 
     <script src="assets/vendor/peerjs-1.5.4.min.js"></script>
-    <script type="module" src="assets/call.js?v=6"></script>
+    <script type="module" src="assets/call.js?v=7"></script>
   </body>
 </html>

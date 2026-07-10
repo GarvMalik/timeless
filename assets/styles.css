@@ -780,10 +780,39 @@ img, video { display: block; max-width: 100%; }
   border-radius: var(--r-lg);
   background: var(--surface);
   padding: clamp(1.5rem, 4vw, 2.5rem);
+  /* no width transition on purpose: animating width re-runs layout every
+     frame, and a browser that throttles animations (background tab, energy
+     saver) can leave the card visibly stuck mid-resize */
 }
 .card > * { flex-shrink: 0; }
 #stepPreview:not([hidden]) { display: flex; flex-direction: column; min-height: 0; flex-shrink: 1; }
 #stepPreview > :not(.preview-tile) { flex-shrink: 0; }
+
+/* Camera-preview step, Meet-style on wide screens: the card widens, the
+   preview takes the larger left share, and the actions sit in a right
+   column vertically centered against it — so you get a genuinely big look
+   at your face and background before entering. Below 861px it falls back
+   to the stacked single-column flow above. */
+.card--preview { width: min(64rem, 100%); }
+@media (min-width: 861px) {
+  .card--preview #stepPreview:not([hidden]) {
+    flex-direction: row;
+    align-items: center;
+    gap: clamp(1.5rem, 3vw, 2.75rem);
+  }
+  .card--preview .preview-tile {
+    flex: 1.7 1 0%;
+    height: min(48vh, 30rem);
+    max-height: none;
+    margin-bottom: 0;
+  }
+  .card--preview .preview-actions {
+    flex: 1 1 0%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+}
 .card__eyebrow { margin-bottom: var(--s3); display: block; }
 .card h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(2.2rem, 6vw, 3.6rem); line-height: 1; letter-spacing: -0.02em; margin-bottom: 0.7rem; }
 .card h1 em { font-style: italic; }
