@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 320" font-family="Urbanist, system-ui, sans-serif">
+  <rect width="1400" height="320" fill="#141712"/>
+  <g transform="translate(80 79) scale(2.7)">
+    <path d="M35 12a18 18 0 1 0 0 36c10 0 16-8 25-18-9-10-15-18-25-18Zm50 0c-10 0-16 8-25 18 9 10 15 18 25 18a18 18 0 1 0 0-36Z" fill="none" stroke="#fbf9f2" stroke-width="6.5" stroke-linejoin="round"/>
+    <circle cx="60" cy="30" r="6" fill="#0f9d58"/>
+  </g>
+  <text x="470" y="215" font-size="200" font-weight="800" fill="#fbf9f2" letter-spacing="-8">Timeless</text>
+</svg>
