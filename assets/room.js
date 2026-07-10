@@ -241,6 +241,37 @@ export class Room extends EventTarget {
     this.localState = { cam: true, mic: true, content: 'none' };
     this.localMeter = null;
     this.ended = false;
+
+    // stand-in video track while the real camera is stopped — see setLocalCam
+    this._placeholderVideo = null;
+
+    // Safari can reject autoplaying a remote <video> that has sound, with no
+    // error surfaced — black tile AND silence. Any tap/click anywhere in the
+    // page is a user gesture that lifts the restriction, so retry play() on
+    // every participant video whenever one happens. Cheap no-op elsewhere.
+    const retryPlay = () => {
+      this.participants.forEach((p) => {
+        if (p.video && p.video.srcObject && p.video.paused) p.video.play().catch(() => {});
+      });
+    };
+    document.addEventListener('pointerdown', retryPlay, true);
+    document.addEventListener('keydown', retryPlay, true);
+  }
+
+  // A disabled 2x2 canvas track: costs nothing to send (disabled tracks
+  // transmit silence/blackness), involves no hardware (LED stays off), but
+  // keeps a video track in localStream at all times. Without it, a
+  // connection negotiated while the camera is off has NO video sender —
+  // turning the camera back on then has nowhere to attach the new track,
+  // and the other side never sees you at all.
+  _makePlaceholderVideoTrack() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 2;
+    canvas.height = 2;
+    canvas.getContext('2d').fillRect(0, 0, 2, 2); // captureStream needs at least one drawn frame
+    const track = canvas.captureStream(1).getVideoTracks()[0];
+    track.enabled = false;
+    return track;
   }
 
   // ---- local media --------------------------------------------------------
@@ -293,16 +324,28 @@ export class Room extends EventTarget {
           this.dispatchEvent(new CustomEvent('cam-error', { detail: { error: e } }));
           return; // stay off — camera unavailable (unplugged, permission revoked, in use elsewhere)
         }
+        // clear the placeholder AND any stray video track (e.g. Movie Mode's
+        // restore path can leave one) — the invariant is exactly one video
+        // track in localStream at all times
+        this.localStream.getVideoTracks().forEach((t) => {
+          this.localStream.removeTrack(t);
+          t.stop();
+        });
+        this._placeholderVideo = null;
         await this.replaceSenderTrack('video', track);
         this.localStream.addTrack(track);
         this.localVideoEl.srcObject = this.localStream;
       } else {
-        const track = this.localStream.getVideoTracks()[0];
-        if (track) {
-          this.localStream.removeTrack(track);
-          track.stop(); // <-- this is what actually turns off the hardware/LED
-        }
-        await this.replaceSenderTrack('video', null);
+        this.localStream.getVideoTracks().forEach((t) => {
+          this.localStream.removeTrack(t);
+          t.stop(); // <-- this is what actually turns off the hardware/LED
+        });
+        // swap in the disabled placeholder instead of leaving the stream
+        // videoless — keeps a video sender alive on every connection
+        // (current AND future ones negotiated while the camera is off)
+        this._placeholderVideo = this._makePlaceholderVideoTrack();
+        this.localStream.addTrack(this._placeholderVideo);
+        await this.replaceSenderTrack('video', this._placeholderVideo);
       }
     } finally {
       this._camBusy = false;
@@ -367,7 +410,21 @@ export class Room extends EventTarget {
   }
 
   _broadcastState() {
-    this.broadcast({ t: 'state', name: this.myName, cam: this.localState.cam, mic: this.localState.mic, content: this.localState.content });
+    this.broadcast(this._stateMessage());
+  }
+
+  _stateMessage() {
+    return { t: 'state', name: this.myName, cam: this.localState.cam, mic: this.localState.mic, content: this.localState.content };
+  }
+
+  // Presence used to only broadcast on *change* — so someone who joined with
+  // their camera already off showed as a blank tile on everyone else's
+  // screen (no avatar, no mute badge) until they next touched a control.
+  // Every new data connection now gets our current state immediately.
+  _sendStateTo(conn) {
+    const send = () => { try { conn.send(this._stateMessage()); } catch (e) {} };
+    if (conn.open) send();
+    else conn.on('open', send);
   }
 
   // =========================================================================
@@ -440,6 +497,7 @@ export class Room extends EventTarget {
     this._pendingNames.set(peerId, name);
     const p = this._getOrCreateParticipant(peerId);
     p.conn = conn;
+    this._sendStateTo(conn);
     this._sendRosterTo(peerId);
     this._broadcastJoined(peerId, p);
   }
@@ -523,6 +581,7 @@ export class Room extends EventTarget {
       }
       this._wireCall(p, call);
       conn.on('data', (m) => this._routeData(hostCode, m)); // future traffic on this conn
+      this._sendStateTo(conn);
       this.dispatchEvent(new CustomEvent('admitted'));
     } else if (msg.t === 'deny') {
       this.dispatchEvent(new CustomEvent('denied'));
@@ -541,6 +600,7 @@ export class Room extends EventTarget {
     p.conn = conn;
     conn.on('data', (msg) => this._routeData(peerId, msg));
     conn.on('close', () => this._removeParticipant(peerId));
+    this._sendStateTo(conn);
   }
 
   _handlePeerCall(call) {
@@ -581,6 +641,7 @@ export class Room extends EventTarget {
           np.conn = conn;
           conn.on('data', (m) => this._routeData(id, m));
           conn.on('close', () => this._removeParticipant(id));
+          this._sendStateTo(conn);
         });
         break;
       case 'joined':
@@ -633,6 +694,11 @@ export class Room extends EventTarget {
     call.on('stream', (stream) => {
       p.stream = stream;
       p.video.srcObject = stream;
+      // autoplay isn't guaranteed for a remote video with sound — Safari in
+      // particular can silently refuse (black tile AND no audio). Try
+      // explicitly; the constructor's pointerdown/keydown retry covers the
+      // case where this rejects until the user's next interaction.
+      p.video.play().catch(() => {});
       p.updateAvatar();
       p.startMeter();
       // by now the connection is fully negotiated with real tracks, so this

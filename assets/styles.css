@@ -563,10 +563,14 @@ img, video { display: block; max-width: 100%; }
   flex: 1;
   display: grid;
   grid-template-columns: repeat(var(--cols, 1), 1fr);
-  align-content: center;
+  /* rows SHARE the stage's height instead of each demanding a fixed slice —
+     tiles used to set min-height: 42vh, so 3+ people (2 rows = 84vh+) grew
+     the grid past its flex budget and painted underneath the dock */
+  grid-auto-rows: minmax(0, 1fr);
   gap: clamp(0.75rem, 2vw, 1.25rem);
   padding: clamp(0.75rem, 2vw, 1.25rem);
   min-height: 0;
+  overflow: hidden;
 }
 .stage__empty {
   position: absolute;
@@ -611,7 +615,7 @@ img, video { display: block; max-width: 100%; }
   background: var(--surface);
   border-radius: var(--r-lg);
   overflow: hidden;
-  min-height: 42vh;
+  min-height: 0; /* the grid's minmax(0,1fr) rows size tiles — a fixed vh floor here is what used to overflow the dock */
   transition: box-shadow var(--dur) var(--ease);
 }
 .tile video { width: 100%; height: 100%; object-fit: cover; background: #e7e2dd; }
@@ -754,25 +758,36 @@ img, video { display: block; max-width: 100%; }
 .ctrl[aria-busy='true'] svg { display: none; }
 .ctrl[aria-busy='true'] { cursor: wait; }
 
-/* lobby */
+/* lobby — the card must FIT the viewport, not scroll it. The card is a flex
+   column capped at the lobby's height; on the camera-preview step, the
+   preview tile is the flexible child that absorbs whatever height the
+   headline/buttons don't need, shrinking on short screens instead of
+   pushing the Continue button off the bottom. overflow-y:auto stays as a
+   last-resort safety net for absurdly tiny embeds only. */
 .lobby {
   flex: 1;
   min-height: 0; /* lets this shrink against .room's fixed height instead of forcing it taller */
-  display: grid;
-  place-items: center;
-  padding: clamp(4rem, 10vh, 7rem) var(--edge) var(--s4);
-  overflow-y: auto; /* a genuinely tiny viewport scrolls the card, never the page */
+  display: flex; /* NOT grid: a grid item's max-height:100% resolves against an auto row track (content-sized), so the cap never binds */
+  padding: clamp(1rem, 3vh, 2.5rem) var(--edge);
+  overflow-y: auto;
 }
 .card {
+  margin: auto; /* centers in both axes, and unlike align/justify centering stays scroll-reachable if content ever genuinely overflows */
   width: min(42rem, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
   border-radius: var(--r-lg);
   background: var(--surface);
-  padding: clamp(1.8rem, 5vw, 3rem);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
 }
+.card > * { flex-shrink: 0; }
+#stepPreview:not([hidden]) { display: flex; flex-direction: column; min-height: 0; flex-shrink: 1; }
+#stepPreview > :not(.preview-tile) { flex-shrink: 0; }
 .card__eyebrow { margin-bottom: var(--s3); display: block; }
 .card h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(2.2rem, 6vw, 3.6rem); line-height: 1; letter-spacing: -0.02em; margin-bottom: 0.7rem; }
 .card h1 em { font-style: italic; }
-.card p.sub { color: var(--ink-2); max-width: 46ch; margin-bottom: var(--s4); }
+.card p.sub { color: var(--ink-2); max-width: 46ch; margin-bottom: var(--s3); }
 
 .field { margin-bottom: var(--s3); }
 .field label { display: block; margin-bottom: 0.5rem; }
@@ -796,13 +811,15 @@ img, video { display: block; max-width: 100%; }
 .preview-tile {
   position: relative;
   width: 100%;
-  /* aspect-ratio alone made this too tall on short viewports — the lobby
-     card's own overflow-y:auto was masking it, but "scroll to see the
-     Continue button" still isn't "fits the viewport." A height capped to
-     the viewport (with a sane absolute ceiling) shrinks gracefully instead;
-     object-fit: cover on the video absorbs the change, same as everywhere
-     else video is shown here. */
-  height: min(45vh, 22rem);
+  /* the flexible child of the preview step (see .card above): it takes
+     whatever height the headline/buttons don't need — a fixed height (or
+     aspect-ratio) here is what used to push the Continue button off the
+     bottom of shorter screens. object-fit: cover on the video absorbs
+     whatever size this lands at, same as everywhere else video is shown. */
+  flex: 1 1 auto;
+  min-height: 6rem;
+  max-height: 24rem;
+  height: 16rem; /* fallback sizing for non-flex contexts; flex-basis wins inside the card */
   border-radius: var(--r-lg);
   overflow: hidden;
   background: var(--bg);
