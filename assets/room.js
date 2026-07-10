@@ -158,7 +158,7 @@ class Participant {
     this.tile = tileEl;
     this.video = tileEl.querySelector('video');
     this.avatar = tileEl.querySelector('.avatar');
-    this.badge = tileEl.querySelector('.tile__badge');
+    this.voice = tileEl.querySelector('.tile__voice'); // bottom-left chip: bars / muted mic
     this.tag = tileEl.querySelector('.tile__tag');
     this.avatarColor = null;
     this.state = { cam: true, mic: true, content: 'none' };
@@ -185,7 +185,7 @@ class Participant {
   }
 
   updateBadge() {
-    this.badge.classList.toggle('show', !this.state.mic);
+    this.voice.classList.toggle('tile__voice--muted', !this.state.mic);
   }
 
   startMeter() {
@@ -285,6 +285,7 @@ export class Room extends EventTarget {
       this.dispatchEvent(new CustomEvent('mic-level', { detail: { level, speaking } }));
     });
     this._updateLocalAvatar();
+    this._layoutGrid(); // seed data-count/data-pos for the solo layout
   }
 
   setName(name) {
@@ -780,7 +781,15 @@ export class Room extends EventTarget {
 
   _layoutGrid() {
     const count = this.participants.size + 1; // + yourself
+    // data-count drives the wireframe layouts (1 centered / 2 side-by-side /
+    // 3 = two stacked left + one centered right / 4 = 2x2); --cols remains
+    // the fallback grid for larger calls. data-pos orders tiles with remote
+    // participants first and "You" last (the wireframes put you on the right).
+    this.stageEl.dataset.count = String(count);
     this.stageEl.style.setProperty('--cols', String(columnsFor(count)));
+    let pos = 1;
+    this.participants.forEach((p) => { p.tile.dataset.pos = String(pos); pos += 1; });
+    this.localTileEl.dataset.pos = String(pos);
     this.dispatchEvent(new CustomEvent('grid-changed', { detail: { count, large: count > LARGE_CALL_THRESHOLD } }));
   }
 

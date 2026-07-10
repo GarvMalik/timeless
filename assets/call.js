@@ -7,10 +7,10 @@
    See ARCHITECTURE.md for the full protocol this orchestrates.
    ========================================================================= */
 
-import { Room, isValidCode } from './room.js?v=7';
-import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=7';
-import { initChat } from './chat.js?v=7';
-import { initTheater } from './theater.js?v=7';
+import { Room, isValidCode } from './room.js?v=8';
+import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=8';
+import { initChat } from './chat.js?v=8';
+import { initTheater } from './theater.js?v=8';
 
 const $ = (id) => document.getElementById(id);
 
@@ -61,9 +61,11 @@ const stageEmpty = $('stageEmpty');
 const stageEmptyText = $('stageEmptyText');
 const theaterCta = $('theaterCta');
 
+const roomMain = $('roomMain');
 const localTile = $('localTile');
 const localVideo = $('localVideo');
 const localAvatar = $('localAvatar');
+const localVoice = $('localVoice');
 const localTag = $('localTag');
 const tileTemplate = $('tileTemplate');
 
@@ -74,12 +76,23 @@ const movieBtn = $('movieBtn');
 const musicBtn = $('musicBtn');
 const chatBtn = $('chatBtn');
 const chatBadge = $('chatBadge');
-const copyBtn = $('copyBtn');
 const endBtn = $('endBtn');
 
-const inviteChip = $('inviteChip');
-const inviteChipLink = $('inviteChipLink');
-const inviteChipCopy = $('inviteChipCopy');
+const detailsBtn = $('detailsBtn');
+const detailsPop = $('detailsPop');
+const detailsClose = $('detailsClose');
+const detailsLink = $('detailsLink');
+const detailsCopy = $('detailsCopy');
+const moreBtn = $('moreBtn');
+const morePop = $('morePop');
+const moreCopy = $('moreCopy');
+const moreTheater = $('moreTheater');
+const peoplePop = $('peoplePop');
+const peopleClose = $('peopleClose');
+const peopleCount = $('peopleCount');
+const peopleList = $('peopleList');
+const peopleSearch = $('peopleSearch');
+
 const musicPill = $('musicPill');
 const musicPillText = $('musicPillText');
 
@@ -217,9 +230,9 @@ function showStep(id) {
 
 function enterRoomView() {
   lobby.hidden = true;
-  stage.hidden = false;
+  roomMain.hidden = false; // the stage + in-flow chat panel row
   dock.hidden = false;
-  roomEl.classList.add('room--live'); // the dark cinematic call theme — see styles.css
+  roomEl.classList.add('room--live'); // the dark toolbar-pill treatment — see styles.css
 }
 
 // Voice profile: good speech defaults, made explicit rather than left to
@@ -320,9 +333,7 @@ function syncStatus() {
 }
 
 room.addEventListener('host-ready', (e) => {
-  const url = inviteUrl(e.detail.code);
-  inviteChipLink.textContent = url;
-  inviteChip.classList.add('show');
+  detailsLink.textContent = inviteUrl(e.detail.code); // Meeting-details popover joining info
   syncStatus();
   enterRoomView();
   maybeAutoStartMovie();
@@ -353,6 +364,7 @@ room.addEventListener('knocking', () => {
 });
 
 room.addEventListener('admitted', () => {
+  detailsLink.textContent = inviteUrl(room.getRoomCode()); // guests can share the joining info too
   syncStatus();
   enterRoomView();
   maybeAutoStartMovie();
@@ -411,6 +423,7 @@ function syncDockUI(e) {
   swapIcon(micBtn, !state.mic);
   micBtn.setAttribute('aria-label', state.mic ? 'Mute microphone' : 'Unmute microphone');
   if (!state.mic) micBtn.classList.remove('ctrl--speaking'); // no glow while muted
+  localVoice.classList.toggle('tile__voice--muted', !state.mic); // your tile's bottom-left chip
 
   setPressed(camBtn, !state.cam);
   swapIcon(camBtn, !state.cam);
@@ -459,6 +472,8 @@ function syncClaimUI() {
   const showPill = !!claim && claim.kind === 'music' && claim.peerId !== room.getMyPeerId();
   musicPill.classList.toggle('show', showPill);
   if (showPill) musicPillText.textContent = `${claim.name || 'Someone'}'s music`;
+
+  moreTheater.disabled = !(claim && claim.kind === 'movie'); // theater only makes sense while a movie is up
 }
 
 movieBtn.addEventListener('click', () => {
@@ -486,15 +501,98 @@ if (!isDisplayCaptureSupported()) {
 }
 
 // =========================================================================
-// dock — copy invite / leave
+// popovers — the wireframes' three anchored cards: People opens from the
+// status pill (top-right), Meeting details from the bottom-left utility,
+// More from the bottom-right. One open at a time; Esc or clicking anywhere
+// else closes them.
 // =========================================================================
+const popovers = [
+  { pop: peoplePop, btn: statusEl },
+  { pop: detailsPop, btn: detailsBtn },
+  { pop: morePop, btn: moreBtn },
+];
+
+function closePopovers(except) {
+  popovers.forEach(({ pop, btn }) => {
+    if (pop === except) return;
+    pop.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function togglePopover(pop, btn) {
+  const opening = pop.hidden;
+  closePopovers(opening ? pop : null);
+  pop.hidden = !opening;
+  btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+  return opening;
+}
+
+statusEl.addEventListener('click', () => {
+  if (!roomEl.classList.contains('room--live')) return; // no roster before you're in the room
+  if (togglePopover(peoplePop, statusEl)) {
+    peopleSearch.value = '';
+    renderPeople();
+  }
+});
+detailsBtn.addEventListener('click', () => togglePopover(detailsPop, detailsBtn));
+moreBtn.addEventListener('click', () => togglePopover(morePop, moreBtn));
+peopleClose.addEventListener('click', () => closePopovers(null));
+detailsClose.addEventListener('click', () => closePopovers(null));
+
+document.addEventListener('click', (e) => {
+  const inside = popovers.some(({ pop, btn }) => pop.contains(e.target) || btn.contains(e.target));
+  if (!inside) closePopovers(null);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closePopovers(null);
+});
+
+// ---- People list (wireframe: count header, search, one row per person) ---
+function renderPeople() {
+  const filter = peopleSearch.value.trim().toLowerCase();
+  const entries = [];
+  room.getParticipants().forEach((p) => entries.push({ name: p.name, color: p.avatarColor }));
+  entries.push({ name: myName || 'You', you: true, color: room.localAvatarColor });
+  peopleCount.textContent = `Total ${entries.length} in the call`;
+  peopleList.textContent = '';
+  entries
+    .filter((en) => !filter || en.name.toLowerCase().includes(filter))
+    .forEach((en) => {
+      const row = document.createElement('div');
+      row.className = 'person';
+      const av = document.createElement('span');
+      av.className = 'person__avatar';
+      av.style.background = en.color || 'var(--mint)';
+      av.textContent = (en.name || '?').trim().charAt(0).toUpperCase();
+      const nm = document.createElement('span');
+      nm.className = 'person__name';
+      nm.textContent = en.name;
+      row.append(av, nm);
+      if (en.you) {
+        const tag = document.createElement('span');
+        tag.className = 'person__you';
+        tag.textContent = 'you';
+        row.appendChild(tag);
+      }
+      peopleList.appendChild(row);
+    });
+}
+peopleSearch.addEventListener('input', renderPeople);
+room.addEventListener('participant-added', () => { if (!peoplePop.hidden) renderPeople(); });
+room.addEventListener('participant-removed', () => { if (!peoplePop.hidden) renderPeople(); });
+room.addEventListener('participant-state', () => { if (!peoplePop.hidden) renderPeople(); });
+
+// ---- copy + More actions --------------------------------------------------
 function doCopy() {
   const code = room.getRoomCode();
   if (!code) return;
   copyText(inviteUrl(code)).then(() => showToast('Invite link copied'));
 }
-copyBtn.addEventListener('click', doCopy);
-inviteChipCopy.addEventListener('click', doCopy);
+detailsCopy.addEventListener('click', doCopy);
+moreCopy.addEventListener('click', () => { doCopy(); closePopovers(null); });
+moreTheater.addEventListener('click', () => { closePopovers(null); theater.enter(); });
+moreTheater.disabled = true; // enabled by syncClaimUI while a movie is being shared
 
 function leave() {
   room.leave();

@@ -78,6 +78,16 @@ buttons lift/darken on hover, arrows nudge. Disabled under
 - **`.hand`** — bold green Lexend accent word; **`.uline`** — the hand-drawn
   SVG squiggle underline (best on mid-size headings, not the giant hero).
 - **Room** — rounded video tiles, pill controls, green live status, same tokens.
+  The in-call **layout system** follows the wireframe spec (structure only —
+  visuals stay ours): top bar = logo left + status pill right, and the status
+  pill doubles as the participants entry point (opens the People popover);
+  bottom bar = three clusters (left utility → Meeting-details popover,
+  centered dark control pill, right utilities: chat + More popover); tile
+  chrome = voice-indicator chip bottom-left + name chip bottom-right;
+  stage layouts by count — 1: single centered tile, 2: equal side-by-side
+  (You on the right), 3: two stacked left + one vertically-centered right,
+  4: 2×2, 5+: fallback grid; the chat panel is in normal flow and *squeezes*
+  the stage open/closed (full-screen overlay on mobile).
 - **`.avatar`** — shown on a video tile in place of a frozen/black frame when
   a participant's camera is off. A colour is chosen at random (from the pastel
   palette) once per session and paired with a single consistent face glyph —

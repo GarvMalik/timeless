@@ -22,26 +22,39 @@
       href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Noto+Sans+Display:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/styles.css?v=7" />
+    <link rel="stylesheet" href="assets/styles.css?v=8" />
   </head>
   <body>
     <div class="room" id="roomEl">
+      <!-- top bar: logo left, status pill right. Per the wireframes the
+           status pill is also the participants entry point — clicking it
+           opens the People popover anchored beneath it. -->
       <div class="room__bar">
         <a class="room__mark" href="index.html">
           <span class="bar__dot" aria-hidden="true"></span>Timeless
         </a>
-        <div class="invite-chip" id="inviteChip">
-          <code id="inviteChipLink">…</code>
-          <button type="button" id="inviteChipCopy">Copy</button>
+        <div class="room__bar-right">
+          <div class="music-pill" id="musicPill" hidden>
+            <span aria-hidden="true">♪</span>
+            <span id="musicPillText">Someone's music</span>
+          </div>
+          <button type="button" class="status" id="status" data-state="idle" aria-haspopup="dialog" aria-expanded="false" title="See who's in the call">
+            <span class="status__dot" aria-hidden="true"></span>
+            <span id="statusText">Not connected</span>
+          </button>
         </div>
-        <div class="music-pill" id="musicPill" hidden>
-          <span aria-hidden="true">♪</span>
-          <span id="musicPillText">Someone's music</span>
+      </div>
+
+      <!-- People popover — opens from the status pill (wireframe: top-right
+           card with count header, search, and one row per participant) -->
+      <div class="popover popover--people" id="peoplePop" hidden>
+        <div class="popover__head">
+          <span class="popover__title"><span class="status__dot status__dot--live" aria-hidden="true"></span><span id="peopleCount">1 in the call</span></span>
+          <button type="button" class="popover__close" id="peopleClose" aria-label="Close">×</button>
         </div>
-        <div class="status" id="status" data-state="idle">
-          <span class="status__dot" aria-hidden="true"></span>
-          <span id="statusText">Not connected</span>
-        </div>
+        <span class="label popover__section">In the meeting</span>
+        <input class="popover__search" id="peopleSearch" type="text" placeholder="Search for people" autocomplete="off" />
+        <div class="people-list" id="peopleList"></div>
       </div>
 
       <!-- shared, single-slot banner: network trouble takes priority over the
@@ -173,8 +186,12 @@
         </div>
       </template>
 
-      <!-- ===================== ACTIVE ROOM ===================== -->
-      <section class="stage" id="stage" hidden>
+      <!-- ===================== ACTIVE ROOM =====================
+           .room__main is a flex row: the stage plus the in-flow chat panel.
+           Opening chat narrows the stage (wireframe behavior) instead of
+           overlaying it. -->
+      <div class="room__main" id="roomMain" hidden>
+      <section class="stage" id="stage">
         <div class="stage__empty" id="stageEmpty">
           <span class="gt">An empty room</span>
           <p id="stageEmptyText">Waiting for someone to open your link…</p>
@@ -198,13 +215,42 @@
               <path d="M14 92c4-22 18-34 36-34s32 12 36 34" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
             </svg>
           </div>
+          <span class="tile__voice" id="localVoice" aria-hidden="true">
+            <span class="tile__voice-bars"><span></span><span></span><span></span></span>
+            <svg class="tile__voice-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M9 9v-3a3 3 0 0 1 6 0v5M15 12.5a3 3 0 0 1-4.5 1.5M5 11a7 7 0 0 0 10.5 6M12 18v3M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
           <span class="tile__tag" id="localTag">You</span>
         </div>
         <!-- one .tile per remote participant is cloned from #tileTemplate
              and appended here by room.js -->
       </section>
 
-      <!-- template cloned once per remote participant — see room.js -->
+      <!-- ===================== CHAT PANEL =====================
+           in normal flow beside the stage: opening it narrows the stage
+           rather than covering it (falls back to an overlay on mobile) -->
+      <aside class="chat" id="chatPanel" aria-label="Chat">
+        <div class="chat__head">
+          <span class="label">Chat</span>
+          <button type="button" class="chat__close" id="chatClose" aria-label="Close chat">×</button>
+        </div>
+        <div class="chat__list" id="chatList" role="log" aria-live="polite"></div>
+        <form class="chat__form" id="chatForm" autocomplete="off">
+          <input id="chatInput" type="text" maxlength="2000" placeholder="Message everyone…" autocomplete="off" />
+          <button type="submit" aria-label="Send message">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </form>
+      </aside>
+      </div><!-- /.room__main -->
+
+      <!-- template cloned once per remote participant — see room.js.
+           Tile chrome per the wireframes: voice-indicator chip bottom-left
+           (bars while their audio registers, crossed mic while muted),
+           name chip bottom-right. -->
       <template id="tileTemplate">
         <div class="tile">
           <video autoplay playsinline></video>
@@ -214,8 +260,9 @@
               <path d="M14 92c4-22 18-34 36-34s32 12 36 34" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
             </svg>
           </div>
-          <span class="tile__badge" aria-label="Muted">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <span class="tile__voice" aria-hidden="true">
+            <span class="tile__voice-bars"><span></span><span></span><span></span></span>
+            <svg class="tile__voice-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <path d="M9 9v-3a3 3 0 0 1 6 0v5M15 12.5a3 3 0 0 1-4.5 1.5M5 11a7 7 0 0 0 10.5 6M12 18v3M4 4l16 16" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </span>
@@ -223,8 +270,22 @@
         </div>
       </template>
 
-      <!-- control dock -->
-      <div class="dock" id="dock" hidden>
+      <!-- ===================== BOTTOM BAR =====================
+           three clusters per the wireframes: a left utility (meeting
+           details), the main control pill centered, and right utilities
+           (chat + more). The pill keeps our dark floating treatment. -->
+      <footer class="dock" id="dock" hidden>
+        <div class="dock__side dock__side--left">
+          <button class="ctrl ctrl--utility" id="detailsBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="Meeting details">
+            <span class="ctrl__label">Meeting details</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="dock__pill">
         <button class="ctrl" id="micBtn" aria-pressed="false" aria-label="Mute microphone" title="A green glow means your mic is registering sound">
           <span class="ctrl__label" id="micLabel">Microphone</span>
           <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -262,46 +323,48 @@
           </svg>
         </button>
 
-        <button class="ctrl" id="chatBtn" aria-pressed="false" aria-label="Open chat">
-          <span class="ctrl__label">Chat</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <path d="M4 5h16v11H8l-4 4V5Z" stroke-linejoin="round" />
-          </svg>
-          <span class="ctrl__badge" id="chatBadge" hidden></span>
-        </button>
-
-        <button class="ctrl" id="copyBtn" aria-label="Copy invite link">
-          <span class="ctrl__label">Copy invite</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </button>
-
         <button class="ctrl ctrl--end" id="endBtn" aria-label="Leave the call">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
             <path d="M3 10a12 12 0 0 1 18 0l-2.5 2.5-3-1V9a9 9 0 0 0-7 0v2.5l-3 1L3 10Z" stroke-linejoin="round" />
           </svg>
           Leave
         </button>
-      </div>
+        </div><!-- /.dock__pill -->
 
-      <!-- ===================== CHAT PANEL ===================== -->
-      <aside class="chat" id="chatPanel" aria-label="Chat">
-        <div class="chat__head">
-          <span class="label">Chat</span>
-          <button type="button" class="chat__close" id="chatClose" aria-label="Close chat">×</button>
-        </div>
-        <div class="chat__list" id="chatList" role="log" aria-live="polite"></div>
-        <form class="chat__form" id="chatForm" autocomplete="off">
-          <input id="chatInput" type="text" maxlength="2000" placeholder="Message everyone…" autocomplete="off" />
-          <button type="submit" aria-label="Send message">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-              <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+        <div class="dock__side dock__side--right">
+          <button class="ctrl ctrl--utility" id="chatBtn" aria-pressed="false" aria-label="Open chat">
+            <span class="ctrl__label">Chat</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M4 5h16v11H8l-4 4V5Z" stroke-linejoin="round" />
+            </svg>
+            <span class="ctrl__badge" id="chatBadge" hidden></span>
+          </button>
+          <button class="ctrl ctrl--utility" id="moreBtn" aria-haspopup="menu" aria-expanded="false" aria-label="More options">
+            <span class="ctrl__label">More</span>
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+              <circle cx="12" cy="5.5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="18.5" r="1.7" />
             </svg>
           </button>
-        </form>
-      </aside>
+        </div>
+      </footer>
+
+      <!-- Meeting details popover — anchored above the bottom-left utility
+           (wireframe: "Meeting Detail" card with joining info + copy) -->
+      <div class="popover popover--details" id="detailsPop" hidden>
+        <div class="popover__head">
+          <span class="popover__title">Meeting details</span>
+          <button type="button" class="popover__close" id="detailsClose" aria-label="Close">×</button>
+        </div>
+        <span class="label popover__section">Joining info</span>
+        <code class="popover__link" id="detailsLink">…</code>
+        <button type="button" class="btn" id="detailsCopy">Copy joining info</button>
+      </div>
+
+      <!-- More popover — anchored above the bottom-right utilities -->
+      <div class="popover popover--more" id="morePop" hidden>
+        <button type="button" class="popover__item" id="moreCopy">Copy invite link</button>
+        <button type="button" class="popover__item" id="moreTheater">Enter theater view</button>
+      </div>
 
       <!-- ===================== THEATER VIEW ===================== -->
       <div class="theater" id="theaterView">
@@ -320,6 +383,6 @@
     <div class="toast" id="toast"></div>
 
     <script src="assets/vendor/peerjs-1.5.4.min.js"></script>
-    <script type="module" src="assets/call.js?v=7"></script>
+    <script type="module" src="assets/call.js?v=8"></script>
   </body>
 </html>

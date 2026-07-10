@@ -417,45 +417,129 @@ img, video { display: block; max-width: 100%; }
 }
 .room__mark { font-family: var(--serif); font-size: 1.5rem; display: inline-flex; align-items: center; gap: 0.5rem; }
 
-/* ---- on-screen invite chip (host only, visible for the whole call) ----- */
-.invite-chip {
-  display: none;
+.room__bar-right { display: flex; align-items: center; gap: 0.6rem; }
+
+/* =========================================================================
+   Popovers — the wireframes' three anchored cards: People (below the
+   status pill, top-right), Meeting details (above the left utility,
+   bottom-left), More (above the right utilities, bottom-right). One shared
+   component, three anchors; all our tokens.
+   ========================================================================= */
+.popover {
+  position: fixed;
+  z-index: 65;
+  width: min(22rem, calc(100vw - 2 * var(--edge)));
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 18px 44px rgba(49, 47, 45, 0.16);
+  /* no entrance animation on purpose: a one-shot opacity-from-0 animation
+     under a throttled/frozen animation timeline leaves the popover stuck
+     invisible — same failure class as the removed .card width transition */
+}
+.popover--people { top: 4.5rem; right: var(--edge); }
+.popover--details { bottom: 5.6rem; left: var(--edge); }
+.popover--more { bottom: 5.6rem; right: var(--edge); width: min(16rem, calc(100vw - 2 * var(--edge))); padding: 0.6rem; }
+.popover__head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.popover__title {
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.4rem 0.4rem 0.95rem;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: var(--fs-md);
+}
+.popover__close {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease);
+}
+.popover__close:hover { color: var(--ink); }
+.popover__section { display: block; }
+.popover__search {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  padding: 0.65rem 0.95rem;
   border: 1px solid var(--line);
   border-radius: var(--r-pill);
-  background: var(--surface);
+  background: var(--bg);
+  color: var(--ink);
+  transition: border-color var(--dur) var(--ease);
+}
+.popover__search:focus { outline: none; border-color: var(--green); }
+.popover__link {
+  font-family: var(--sans);
   font-size: var(--fs-sm);
-  max-width: min(24rem, 60vw);
-}
-.invite-chip.show { display: inline-flex; }
-.invite-chip code {
-  flex: 1;
-  font-family: var(--sans);
   color: var(--ink-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
-.invite-chip button {
+.status__dot--live { width: 9px; height: 9px; border-radius: 50%; background: var(--green); display: inline-block; }
+
+.people-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: min(18rem, 40vh);
+  overflow-y: auto;
+}
+.person {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  font-size: var(--fs-sm);
+}
+.person__avatar {
   flex-shrink: 0;
-  border: none;
-  border-radius: var(--r-pill);
-  background: var(--green);
-  color: #fff;
-  font-family: var(--sans);
-  font-size: var(--fs-label);
+  width: 1.9rem; height: 1.9rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--serif);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 0.5rem 0.9rem;
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+.person__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person__you { color: var(--ink-3); font-size: var(--fs-label); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.popover__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 0.7rem 0.9rem;
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  color: var(--ink);
   cursor: pointer;
   transition: background var(--dur) var(--ease);
 }
-.invite-chip button:hover { background: var(--green-600); }
+.popover__item:hover { background: var(--bg); }
+.popover__item:disabled { opacity: 0.4; cursor: not-allowed; }
+.popover__item:disabled:hover { background: none; }
 
+/* a <button> now — clicking it opens the People popover (wireframe: the
+   status pill is the participants entry point) */
 .status {
+  background: transparent;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -558,20 +642,58 @@ img, video { display: block; max-width: 100%; }
 }
 .knock__deny:hover { background: var(--red); border-color: var(--red); color: #fff; }
 
+/* ---- the main row: stage + in-flow chat panel (see .chat) --------------- */
+.room__main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+/* ---- stage: count-based layouts per the wireframe spec ------------------
+   data-count (set by room.js) drives the arrangement; data-pos orders tiles
+   with remote participants first and "You" last, matching the wireframes
+   (you sit on the right). Rows/columns always SHARE the stage's height —
+   fixed per-tile minimums are what used to overflow the dock. */
 .stage {
   position: relative;
   flex: 1;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(var(--cols, 1), 1fr);
-  /* rows SHARE the stage's height instead of each demanding a fixed slice —
-     tiles used to set min-height: 42vh, so 3+ people (2 rows = 84vh+) grew
-     the grid past its flex budget and painted underneath the dock */
   grid-auto-rows: minmax(0, 1fr);
   gap: clamp(0.75rem, 2vw, 1.25rem);
-  padding: clamp(0.75rem, 2vw, 1.25rem);
+  padding: clamp(0.75rem, 2vw, 1.25rem) var(--edge);
   min-height: 0;
   overflow: hidden;
 }
+.tile { order: 0; }
+#localTile { order: 99; } /* wireframes: "You" is always the last/right tile */
+
+/* one participant (just you): a single centered tile, not full-bleed */
+.stage[data-count='1'] {
+  grid-template-columns: clamp(18rem, 44%, 36rem);
+  justify-content: center;
+}
+
+/* two: equal side-by-side (the default 2-column grid already does this) */
+
+/* three: two stacked on the left, one vertically-centered on the right */
+.stage[data-count='3'] {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+.stage[data-count='3'] .tile[data-pos='1'] { grid-column: 1; grid-row: 1; }
+.stage[data-count='3'] .tile[data-pos='2'] { grid-column: 1; grid-row: 2; }
+.stage[data-count='3'] .tile[data-pos='3'] {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  height: calc(50% - clamp(0.375rem, 1vw, 0.625rem)); /* one row's worth, centered */
+  width: 100%;
+}
+
+/* four: 2x2 (2-column grid + shared rows already yields this) */
 .stage__empty {
   position: absolute;
   inset: 0;
@@ -624,9 +746,12 @@ img, video { display: block; max-width: 100%; }
 #localVideo { transform: scaleX(-1); }
 .tile--sharing #localVideo { transform: none; }
 .tile--speaking { box-shadow: 0 0 0 3px var(--green) inset; }
+/* tile chrome per the wireframes: name chip bottom-RIGHT, voice-indicator
+   chip bottom-LEFT (bars while that participant's audio registers, a red
+   crossed mic while they're muted) */
 .tile__tag {
   position: absolute;
-  left: 1rem; bottom: 1rem;
+  right: 1rem; bottom: 1rem;
   z-index: 3;
   font-size: var(--fs-label);
   letter-spacing: 0.1em;
@@ -638,22 +763,33 @@ img, video { display: block; max-width: 100%; }
   padding: 0.4rem 0.8rem;
   border-radius: var(--r-pill);
 }
-.tile__badge {
+.tile__voice {
   position: absolute;
-  top: 1rem; right: 1rem;
+  left: 1rem; bottom: 1rem;
   z-index: 3;
   width: 2.2rem; height: 2.2rem;
   border-radius: 50%;
-  background: rgba(255, 252, 250, 0.9);
+  background: rgba(255, 252, 250, 0.85);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--red);
 }
-.tile__badge.show { display: flex; }
-.tile__badge svg { width: 1.05rem; height: 1.05rem; }
+.tile__voice-bars { display: inline-flex; align-items: center; gap: 2px; height: 14px; } /* definite height so the %-based ctrl-wave keyframes resolve */
+.tile__voice-bars span {
+  width: 3px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--green);
+  transition: height 0.15s var(--ease);
+}
+.tile--speaking .tile__voice-bars span { animation: ctrl-wave 0.9s ease-in-out infinite; height: 12px; }
+.tile--speaking .tile__voice-bars span:nth-child(1) { animation-delay: -0.3s; }
+.tile--speaking .tile__voice-bars span:nth-child(2) { animation-delay: -0.15s; }
+.tile__voice-muted { display: none; width: 1.05rem; height: 1.05rem; color: var(--red); }
+.tile__voice--muted .tile__voice-bars { display: none; }
+.tile__voice--muted .tile__voice-muted { display: block; }
 
 /* ---- avatar shown when a participant's camera is off -------------------- */
 .avatar {
@@ -667,7 +803,21 @@ img, video { display: block; max-width: 100%; }
 }
 .avatar svg { width: clamp(3rem, 16vw, 5.5rem); height: auto; }
 
-.dock { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; padding: 1rem var(--edge) 1.4rem; }
+/* bottom bar per the wireframes: three clusters — left utility (meeting
+   details), the main control pill dead-center, right utilities (chat +
+   more). 1fr/auto/1fr keeps the pill centered on the viewport regardless
+   of how wide either side cluster is. */
+.dock {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem var(--edge) 1.2rem;
+}
+.dock__side { display: flex; align-items: center; gap: 0.6rem; }
+.dock__side--left { justify-content: flex-start; }
+.dock__side--right { justify-content: flex-end; }
+.dock__pill { display: flex; align-items: center; justify-content: center; gap: 0.6rem; }
 
 /* ---- mic level: a soft glow on the mic button itself, not a separate
    element — reflects the local mic's captured input level so you can see
@@ -932,21 +1082,27 @@ img, video { display: block; max-width: 100%; }
    Chat panel — slides in from the right; uses a class (not [hidden]) so the
    transform transition actually runs. See assets/chat.js.
    ========================================================================= */
+/* Desktop: an in-flow flex sibling of the stage — opening it narrows the
+   stage (the wireframes' side-panel behavior) instead of covering it. The
+   width change is intentionally NOT transitioned (an animation-throttled
+   browser can freeze a width transition mid-flight — see the .card note);
+   the contents fade in instead, which is compositor-safe. Inner sections
+   keep a fixed width so nothing squishes. */
 .chat {
-  position: fixed;
-  inset: 0 0 0 auto;
-  z-index: 55;
-  width: min(23rem, 100vw);
+  --chat-w: min(23rem, 34vw);
+  position: relative;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--surface);
   border-left: 1px solid var(--line);
-  box-shadow: -12px 0 32px rgba(49, 47, 45, 0.1);
-  transform: translateX(100%);
   visibility: hidden;
-  transition: transform var(--dur) var(--ease), visibility 0s linear var(--dur);
 }
-.chat.show { transform: translateX(0); visibility: visible; transition: transform var(--dur) var(--ease); }
+.chat > * { width: var(--chat-w); opacity: 0; transition: opacity 0.3s var(--ease); }
+.chat.show { width: var(--chat-w); visibility: visible; }
+.chat.show > * { opacity: 1; }
 .chat__head {
   display: flex;
   align-items: center;
@@ -1072,11 +1228,10 @@ img, video { display: block; max-width: 100%; }
    below remain; nothing here touches --bg/--surface/--ink anymore.
    ========================================================================= */
 
-/* ---- the toolbar redesign itself: one floating cohesive bar, not a row of
-   separate circles with gaps between them ---------------------------------- */
-.room--live .dock {
-  width: fit-content;
-  margin: 0 auto 1.25rem;
+/* ---- the toolbar's dark treatment applies to the CENTER PILL only — the
+   left/right utility clusters sit on the page background and keep the
+   standard light circular-button look (the wireframes' three-cluster bar) */
+.room--live .dock__pill {
   padding: 0.5rem 0.6rem;
   border-radius: 999px;
   background: rgba(13, 11, 6, 0.72);
@@ -1088,17 +1243,17 @@ img, video { display: block; max-width: 100%; }
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   gap: 0.25rem;
 }
-.room--live .ctrl {
+.room--live .dock__pill .ctrl {
   background: transparent;
   border-color: transparent;
   color: rgba(245, 242, 236, 0.86);
 }
-.room--live .ctrl:hover {
+.room--live .dock__pill .ctrl:hover {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   border-color: transparent;
 }
-.room--live .ctrl[aria-pressed='true'] {
+.room--live .dock__pill .ctrl[aria-pressed='true'] {
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
   border-color: transparent;
@@ -1110,16 +1265,14 @@ img, video { display: block; max-width: 100%; }
   background: rgba(225, 37, 46, 0.22);
   color: #ffb3ae;
 }
-.room--live .ctrl__label { background: rgba(255, 255, 255, 0.95); color: #17130c; }
-.room--live .ctrl:disabled { opacity: 0.32; }
-.room--live .ctrl:disabled:hover { background: transparent; color: rgba(245, 242, 236, 0.86); }
-/* .room--live .ctrl's background: transparent has the same specificity as
-   .ctrl--end's own background: var(--red) (two classes vs one), and wins —
-   the Leave button was silently losing its entire red pill under the dark
-   toolbar, leaving bare white text with no background at all. Re-asserting
-   both background and :hover here, at matching specificity, fixes it. */
-.room--live .ctrl--end { background: var(--red); border-color: var(--red); color: #fff; }
-.room--live .ctrl--end:hover { background: #b81d24; border-color: #b81d24; color: #fff; }
+.room--live .dock__pill .ctrl__label { background: rgba(255, 255, 255, 0.95); color: #17130c; }
+.room--live .dock__pill .ctrl:disabled { opacity: 0.32; }
+.room--live .dock__pill .ctrl:disabled:hover { background: transparent; color: rgba(245, 242, 236, 0.86); }
+/* the pill's transparent-ctrl override outranks .ctrl--end's own background
+   (three classes vs one), so the Leave button's red fill must be re-asserted
+   at matching specificity — same bug class as before, kept fixed */
+.room--live .dock__pill .ctrl--end { background: var(--red); border-color: var(--red); color: #fff; }
+.room--live .dock__pill .ctrl--end:hover { background: #b81d24; border-color: #b81d24; color: #fff; }
 
 /* ---- mic waveform — the static glyph crossfades to a small live equalizer
    while you're actually speaking, layered on top of the glow ring shipped
@@ -1164,9 +1317,28 @@ img, video { display: block; max-width: 100%; }
   .feat { grid-template-columns: 2.5rem 1fr; }
   .feat__desc { grid-column: 2 / -1; }
   .foot__grid { grid-template-columns: 1fr; }
-  .stage { grid-template-columns: 1fr !important; }
   .bar__nav .bar__link { display: none; }
-  .chat { width: 100vw; }
   .knock-panel { top: auto; bottom: 6rem; right: var(--s2); left: var(--s2); width: auto; }
-  .invite-chip, .music-pill { display: none !important; }
+  .music-pill { display: none !important; }
+
+  /* stage: every count collapses to a single stacked column */
+  .stage { grid-template-columns: 1fr !important; padding: var(--s2); }
+  .stage .tile[data-pos] {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    align-self: stretch !important;
+    height: auto !important;
+  }
+
+  /* chat: back to a full-width overlay — there's no room to squeeze */
+  .chat {
+    --chat-w: 100vw;
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 55;
+    border-left: none;
+  }
+
+  /* dock: the three clusters wrap into a centered row */
+  .dock { display: flex; flex-wrap: wrap; justify-content: center; }
 }
