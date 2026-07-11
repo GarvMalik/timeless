@@ -193,6 +193,12 @@ rather than a second, easy-to-forget "include my mic" toggle, the existing
 mic button becomes **"Talk over music"** (same control, relabelled) while
 Music Mode is active — unmuting it is the opt-in.
 
+**Stopping Music Mode restores the mic to how it was found** — with one
+deliberate exception: a choice made *during* the share wins. If you were
+unmuted before, the automatic mute is undone; if you were muted before, you
+stay muted; if you opted into talk-over mid-share (mic currently on), that
+stands rather than being reverted.
+
 ## Movie Mode: quality tuning
 
 `getDisplayMedia` is requested with `frameRate: {ideal: 30, max: 60}` and
@@ -211,10 +217,17 @@ overlapping ones.
 
 Theater/focus view (`assets/theater.js`) is **purely local UI state, never
 synced** — any viewer can enter or exit their own full-screen focus view of
-the current shared content independent of everyone else. It only auto-exits
-when the underlying content itself actually stops (the sharer ends it, the
-browser's own "Stop sharing" control is used, or the shared tab/window
-closes) — a real state change everyone needs to see, not a preference.
+the current shared content independent of everyone else, and it is
+**strictly viewer-side**: the presenter never sees the CTA or the More-menu
+entry, since they're already looking at the source. Entering requests real
+browser fullscreen via the Fullscreen API (address bar and tabs disappear,
+like a streaming site), with the overlay itself as the graceful fallback if
+the request is rejected; native fullscreen dismissal (the browser's own Esc)
+is synced back via `fullscreenchange`. It auto-exits whenever the shared
+content genuinely goes away: the sharer stops or is preempted, the browser's
+"Stop sharing" control fires, or the sharer disconnects outright — a crashed
+presenter's stale claim is cleared by `content-share.js` the moment their
+connection drops, which also re-enables everyone's share buttons.
 
 ## Audio profiles: voice, music, movie
 

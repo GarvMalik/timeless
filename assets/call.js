@@ -7,10 +7,10 @@
    See ARCHITECTURE.md for the full protocol this orchestrates.
    ========================================================================= */
 
-import { Room, isValidCode } from './room.js?v=8';
-import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=8';
-import { initChat } from './chat.js?v=8';
-import { initTheater } from './theater.js?v=8';
+import { Room, isValidCode } from './room.js?v=9';
+import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=9';
+import { initChat } from './chat.js?v=9';
+import { initTheater } from './theater.js?v=9';
 
 const $ = (id) => document.getElementById(id);
 
@@ -473,7 +473,9 @@ function syncClaimUI() {
   musicPill.classList.toggle('show', showPill);
   if (showPill) musicPillText.textContent = `${claim.name || 'Someone'}'s music`;
 
-  moreTheater.disabled = !(claim && claim.kind === 'movie'); // theater only makes sense while a movie is up
+  // viewer-only: theater is for people WATCHING a share — the presenter is
+  // already looking at the source, so their entry stays disabled
+  moreTheater.disabled = !(claim && claim.kind === 'movie' && claim.peerId !== room.getMyPeerId());
 }
 
 movieBtn.addEventListener('click', () => {

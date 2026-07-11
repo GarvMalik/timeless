@@ -69,9 +69,21 @@ export class ContentShare extends EventTarget {
     // already connected when sharing started (see _applyCurrentContentTo)
     this.currentVideoTrack = null;
     this.currentAudioTrack = null;
+    // the mic state Music Mode found and must hand back — see stop()
+    this._micWasOnBeforeMusic = null;
 
     room.addEventListener('data', (e) => this._handleRoomData(e.detail));
     room.addEventListener('participant-connected', (e) => this._applyCurrentContentTo(e.detail.participant));
+    // if the participant who holds the active claim disconnects without a
+    // clean "claim: none" (tab crash, network death), the claim would stay
+    // stuck forever — everyone's share buttons disabled, the music pill and
+    // theater CTA pointing at a ghost. Clear it the moment they're gone.
+    room.addEventListener('participant-removed', (e) => {
+      if (this.activeClaim && this.activeClaim.peerId === e.detail.peerId) {
+        this.activeClaim = null;
+        this.dispatchEvent(new CustomEvent('remote-claim', { detail: { kind: 'none' } }));
+      }
+    });
   }
 
   // A newcomer's connection is negotiated with room.localStream's tracks —
@@ -180,7 +192,9 @@ export class ContentShare extends EventTarget {
 
     // clean audio is the point of Music Mode — mute the mic by default. The
     // existing mic button becomes "talk over music" while this is active
-    // (see call.js), rather than a second, easy-to-forget toggle.
+    // (see call.js), rather than a second, easy-to-forget toggle. Remember
+    // what we found so stop() can hand the mic back exactly as it was.
+    this._micWasOnBeforeMusic = this.room.localState.mic;
     this.room.setLocalMic(false);
 
     this.currentAudioTrack = outAudioTrack;
@@ -212,6 +226,14 @@ export class ContentShare extends EventTarget {
     } else {
       const micTrack = this.room.localStream.getAudioTracks()[0];
       if (micTrack) await this.room.replaceSenderTrack('audio', micTrack);
+      // Restore the mic to how Music Mode found it — but never override a
+      // choice the user made mid-share: if they opted into "talk over
+      // music" (mic currently on), that stands. Only the automatic mute is
+      // undone: mic still off now + was on before => turn it back on.
+      if (!this.room.localState.mic && this._micWasOnBeforeMusic) {
+        this.room.setLocalMic(true);
+      }
+      this._micWasOnBeforeMusic = null;
     }
 
     this.currentVideoTrack = null;
