@@ -7,10 +7,10 @@
    See ARCHITECTURE.md for the full protocol this orchestrates.
    ========================================================================= */
 
-import { Room, isValidCode } from './room.js?v=9';
-import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=9';
-import { initChat } from './chat.js?v=9';
-import { initTheater } from './theater.js?v=9';
+import { Room, isValidCode } from './room.js?v=10';
+import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=10';
+import { initChat } from './chat.js?v=10';
+import { initTheater } from './theater.js?v=10';
 
 const $ = (id) => document.getElementById(id);
 
@@ -493,7 +493,9 @@ contentShare.addEventListener('remote-claim', syncClaimUI);
 contentShare.addEventListener('blocked', (e) => showToast(`${e.detail.by} is already sharing — ask them to stop first.`));
 contentShare.addEventListener('preempted', (e) => showToast(`${e.detail.by} started sharing first.`));
 contentShare.addEventListener('unsupported', () => showToast('Your browser cannot share tab audio — try Chrome or Edge.'));
-contentShare.addEventListener('no-audio', () => showToast('That share had no audio — pick a tab that is playing sound.'));
+contentShare.addEventListener('no-audio', () => showToast('That share had no audio — pick a tab and tick “Also share tab audio”.'));
+contentShare.addEventListener('share-failed', () => showToast('Sharing didn’t start — press the button again to pick what to share.'));
+contentShare.addEventListener('mix-unavailable', () => showToast('Sharing pure content audio — your mic can’t mix in right now.'));
 
 if (!isDisplayCaptureSupported()) {
   movieBtn.disabled = true;

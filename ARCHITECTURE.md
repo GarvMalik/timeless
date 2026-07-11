@@ -152,6 +152,22 @@ same technique at 1 peer or 6.
 Movie Mode is Music Mode's video-carrying sibling, not a separate feature: it
 reuses the exact same mixing/replace/claim machinery, plus a video track.
 
+**The suspended-context trap.** The mixing `AudioContext` is necessarily
+constructed *after* `getDisplayMedia()` resolves — and the seconds the user
+spends in the share picker consume the button click's transient user
+activation, so browsers may construct it in the `'suspended'` state. A
+suspended context's destination node outputs pure silence, and since *all*
+outgoing audio (content + mic mix) routes through the graph, one suspended
+context silenced both modes entirely — including the presenter's voice in
+Movie Mode. The pipeline therefore (1) explicitly `resume()`s the context,
+(2) races that promise against a short timeout because a blocked `resume()`
+never rejects, it just hangs, and (3) if the context still isn't running,
+sends the **raw content track** instead — audio delivery is guaranteed, only
+live mic-mixing degrades (surfaced to the user via the `mix-unavailable`
+event). A capturing `pointerdown` listener revives a context that gets
+suspended mid-share. See `_ensureContentAudioTrack` in
+`assets/content-share.js`.
+
 **Only one participant's content is "the shared thing" at a time,** so it
 feels like watching/listening together, not N independent shares. Starting
 Movie/Music broadcasts a `claim`; if someone else already holds one, the

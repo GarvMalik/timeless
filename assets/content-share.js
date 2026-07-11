@@ -117,9 +117,22 @@ export class ContentShare extends EventTarget {
       display = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: { ideal: 30, max: 60 }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: true,
+        // Chrome-only dictionary members, safely ignored elsewhere:
+        // excluding the current tab prevents the accidental hall-of-mirrors
+        // self-capture (infinite video recursion + audio feedback that can
+        // take the whole tab down); systemAudio surfaces the system-audio
+        // checkbox on entire-screen shares where supported
+        selfBrowserSurface: 'exclude',
+        systemAudio: 'include',
       });
     } catch (e) {
-      return; // user dismissed the picker — not an error worth surfacing
+      // NotAllowedError = the user dismissed the picker — silence is right.
+      // Anything else (e.g. InvalidStateError when ?mode=movie auto-starts
+      // without a fresh user gesture) deserves a visible explanation.
+      if (e && e.name !== 'NotAllowedError') {
+        this.dispatchEvent(new CustomEvent('share-failed', { detail: { kind: 'movie' } }));
+      }
+      return;
     }
 
     this.captureStream = display;
@@ -129,7 +142,7 @@ export class ContentShare extends EventTarget {
 
     const audioTrack = display.getAudioTracks()[0];
     refineContentAudio(audioTrack);
-    const outAudioTrack = audioTrack ? this._buildMixGraph(audioTrack) : this.room.localStream.getAudioTracks()[0];
+    const outAudioTrack = audioTrack ? await this._ensureContentAudioTrack(audioTrack) : this.room.localStream.getAudioTracks()[0];
 
     await this.room.replaceSenderTrack('video', videoTrack);
     if (outAudioTrack) {
@@ -166,8 +179,16 @@ export class ContentShare extends EventTarget {
 
     let display;
     try {
-      display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      display = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+        selfBrowserSurface: 'exclude', // see startMovie — prevents self-capture feedback
+        systemAudio: 'include',
+      });
     } catch (e) {
+      if (e && e.name !== 'NotAllowedError') {
+        this.dispatchEvent(new CustomEvent('share-failed', { detail: { kind: 'music' } }));
+      }
       return;
     }
 
@@ -186,7 +207,7 @@ export class ContentShare extends EventTarget {
     this.captureStream = new MediaStream([audioTrack]);
     audioTrack.onended = () => this._onCaptureEnded();
 
-    const outAudioTrack = this._buildMixGraph(audioTrack);
+    const outAudioTrack = await this._ensureContentAudioTrack(audioTrack);
     await this.room.replaceSenderTrack('audio', outAudioTrack);
     this._tuneAudioEncoding(outAudioTrack);
 
@@ -211,17 +232,29 @@ export class ContentShare extends EventTarget {
     this._teardownGraph();
 
     if (wasMovie) {
-      try {
-        const cam = await navigator.mediaDevices.getUserMedia({ video: true });
-        const camTrack = cam.getVideoTracks()[0];
-        camTrack.enabled = this.room.localState.cam;
-        await this.room.replaceSenderTrack('video', camTrack);
+      if (this.room.localState.cam) {
+        try {
+          const cam = await navigator.mediaDevices.getUserMedia({ video: true });
+          const camTrack = cam.getVideoTracks()[0];
+          await this.room.replaceSenderTrack('video', camTrack);
+          const old = this.room.localStream.getVideoTracks()[0];
+          if (old) { this.room.localStream.removeTrack(old); old.stop(); }
+          this.room.localStream.addTrack(camTrack);
+          this.room.localVideoEl.srcObject = this.room.localStream;
+        } catch (e) {
+          this.room.setLocalCam(false); // no camera to restore to — avatar takes over
+        }
+      } else {
+        // the camera is meant to be OFF: never touch the hardware (that
+        // lights the LED while the UI says off) — restore room.js's
+        // placeholder invariant instead, keeping a video sender alive
         const old = this.room.localStream.getVideoTracks()[0];
         if (old) { this.room.localStream.removeTrack(old); old.stop(); }
-        this.room.localStream.addTrack(camTrack);
+        const ph = this.room._makePlaceholderVideoTrack();
+        this.room._placeholderVideo = ph;
+        this.room.localStream.addTrack(ph);
+        await this.room.replaceSenderTrack('video', ph);
         this.room.localVideoEl.srcObject = this.room.localStream;
-      } catch (e) {
-        this.room.setLocalCam(false); // no camera to restore to — avatar takes over
       }
     } else {
       const micTrack = this.room.localStream.getAudioTracks()[0];
@@ -253,11 +286,39 @@ export class ContentShare extends EventTarget {
   }
 
   // ---- Web Audio mixing graph -------------------------------------------------
-  _buildMixGraph(contentAudioTrack) {
+  // CRITICAL ORDERING BUG THIS GUARDS AGAINST: this runs after the
+  // getDisplayMedia picker resolves, and the seconds the user spends
+  // choosing a tab consume the button click's transient user activation —
+  // so the AudioContext can be constructed in the 'suspended' state, whose
+  // destination node outputs pure silence. Both modes route ALL outgoing
+  // audio (content + mic mix) through this graph, so a suspended context
+  // silenced everything, including the presenter's voice in Movie Mode.
+  //
+  // Defense in depth: (1) explicitly resume() — Chrome permits it once a
+  // capture grant exists; (2) resume()'s promise can hang forever when
+  // blocked (it never rejects), so race it against a short timeout; (3) if
+  // the context still isn't running, fall back to sending the RAW content
+  // track — audio delivery is guaranteed, only live mic-mixing degrades
+  // (surfaced via the 'mix-unavailable' event).
+  async _ensureContentAudioTrack(contentAudioTrack) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     this.audioCtx = new Ctx();
-    this.mixDest = this.audioCtx.createMediaStreamDestination();
 
+    if (this.audioCtx.state !== 'running') {
+      await Promise.race([
+        this.audioCtx.resume().catch(() => {}),
+        new Promise((r) => setTimeout(r, 400)),
+      ]);
+    }
+
+    if (this.audioCtx.state !== 'running') {
+      try { this.audioCtx.close(); } catch (e) {}
+      this.audioCtx = null;
+      this.dispatchEvent(new CustomEvent('mix-unavailable'));
+      return contentAudioTrack;
+    }
+
+    this.mixDest = this.audioCtx.createMediaStreamDestination();
     this.contentSourceNode = this.audioCtx.createMediaStreamSource(new MediaStream([contentAudioTrack]));
     this.contentSourceNode.connect(this.mixDest);
 
@@ -271,6 +332,12 @@ export class ContentShare extends EventTarget {
       this.micSourceNode.connect(this.mixDest);
     }
 
+    // if the context gets suspended mid-share (OS interruption, tab policy),
+    // any interaction revives it
+    const revive = () => { if (this.audioCtx && this.audioCtx.state === 'suspended') this.audioCtx.resume().catch(() => {}); };
+    this._reviveHandler = revive;
+    document.addEventListener('pointerdown', revive, true);
+
     return this.mixDest.stream.getAudioTracks()[0];
   }
 
@@ -278,6 +345,10 @@ export class ContentShare extends EventTarget {
     if (this.captureStream) {
       this.captureStream.getTracks().forEach((t) => { t.onended = null; t.stop(); });
       this.captureStream = null;
+    }
+    if (this._reviveHandler) {
+      document.removeEventListener('pointerdown', this._reviveHandler, true);
+      this._reviveHandler = null;
     }
     if (this.contentSourceNode) { try { this.contentSourceNode.disconnect(); } catch (e) {} this.contentSourceNode = null; }
     if (this.micSourceNode) { try { this.micSourceNode.disconnect(); } catch (e) {} this.micSourceNode = null; }
