@@ -7,10 +7,10 @@
    See ARCHITECTURE.md for the full protocol this orchestrates.
    ========================================================================= */
 
-import { Room, isValidCode } from './room.js?v=10';
-import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=10';
-import { initChat } from './chat.js?v=10';
-import { initTheater } from './theater.js?v=10';
+import { Room, isValidCode } from './room.js?v=11';
+import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=11';
+import { initChat } from './chat.js?v=11';
+import { initTheater } from './theater.js?v=11';
 
 const $ = (id) => document.getElementById(id);
 
@@ -315,6 +315,12 @@ const contentShare = new ContentShare(room);
 const chat = initChat(room, { panel: chatPanel, list: chatList, form: chatForm, input: chatInput, closeBtn: chatClose, toggleBtn: chatBtn, badge: chatBadge }, () => myName);
 const theater = initTheater(contentShare, room, { overlay: theaterView, video: theaterVideo, exitBtn: theaterExit, cta: theaterCta });
 
+// dev-only handle for local verification/debugging — gated to localhost so it
+// is never present on the deployed origin (garvmalik.github.io)
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  window.__timeless = { room, contentShare, chat, theater };
+}
+
 function syncStatus() {
   const count = room.getParticipantCount();
   stageEmpty.hidden = count > 0;
@@ -503,6 +509,57 @@ if (!isDisplayCaptureSupported()) {
   movieBtn.querySelector('.ctrl__label').textContent = 'Not supported here';
   musicBtn.querySelector('.ctrl__label').textContent = 'Not supported here';
 }
+
+// =========================================================================
+// per-tile ⋮ menus — pin to enlarge, full screen, and (self only) minimize.
+// Delegated on the stage so it covers tiles cloned in later. Pin and minimize
+// are local-only view state owned by room.js; nothing here is synced.
+// =========================================================================
+function closeTileMenus(except) {
+  stage.querySelectorAll('.tile__menu').forEach((m) => {
+    if (m === except) return;
+    m.hidden = true;
+    const btn = m.parentElement.querySelector('.tile__menu-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+}
+
+stage.addEventListener('click', (e) => {
+  const menuBtn = e.target.closest('.tile__menu-btn');
+  const item = e.target.closest('.tile__menu-item');
+  const pinBadge = e.target.closest('.tile__pin-badge');
+  const restore = e.target.closest('.tile__restore');
+  const tile = e.target.closest('.tile');
+
+  if (menuBtn) {
+    const menu = tile.querySelector('.tile__menu');
+    const willOpen = menu.hidden;
+    closeTileMenus();
+    menu.hidden = !willOpen;
+    menuBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    return;
+  }
+  if (restore || (tile === localTile && localTile.classList.contains('tile--min'))) {
+    localTile.classList.remove('tile--min'); // bring the floating self-view back
+    return;
+  }
+  if (pinBadge) { room.togglePin(tile.dataset.peerId); return; }
+  if (item) {
+    const action = item.dataset.action;
+    if (action === 'pin') room.togglePin(tile.dataset.peerId);
+    else if (action === 'fullscreen' && tile.requestFullscreen) tile.requestFullscreen().catch(() => {});
+    else if (action === 'minimize') localTile.classList.add('tile--min');
+    closeTileMenus();
+  }
+});
+
+// dismiss open tile menus on an outside click or Esc (the menu button and the
+// menu itself are excluded so their own clicks don't instantly re-close)
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.tile__menu') || e.target.closest('.tile__menu-btn')) return;
+  closeTileMenus();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTileMenus(); });
 
 // =========================================================================
 // popovers — the wireframes' three anchored cards: People opens from the

@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Noto+Sans+Display:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/styles.css?v=10" />
+    <link rel="stylesheet" href="assets/styles.css?v=11" />
   </head>
   <body>
     <div class="room" id="roomEl">
@@ -215,6 +215,26 @@
               <path d="M14 92c4-22 18-34 36-34s32 12 36 34" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
             </svg>
           </div>
+          <!-- self-view options (⋮): full screen, minimize the floating tile -->
+          <button type="button" class="tile__menu-btn" id="localMenuBtn" aria-label="Your video options" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="19" r="1.7" />
+            </svg>
+          </button>
+          <div class="tile__menu" role="menu" hidden>
+            <button type="button" class="tile__menu-item" role="menuitem" data-action="fullscreen">Full screen</button>
+            <button type="button" class="tile__menu-item" role="menuitem" data-action="minimize">Minimize your video</button>
+          </div>
+          <!-- shown only while the self-view is minimized (CSS: .tile--min);
+               click anywhere on the chip to bring the floating tile back. No
+               `hidden` attribute — Chromium's UA `[hidden]` rule is !important
+               and would beat the .tile--min override, so visibility is left to
+               the class alone (same reason the ⋮ menus toggle via JS). -->
+          <button type="button" class="tile__restore" id="localRestore" aria-label="Show your video">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
           <span class="tile__voice" id="localVoice" aria-hidden="true">
             <span class="tile__voice-bars"><span></span><span></span><span></span></span>
             <svg class="tile__voice-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
@@ -260,6 +280,22 @@
               <path d="M14 92c4-22 18-34 36-34s32 12 36 34" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
             </svg>
           </div>
+          <!-- per-tile options (⋮): pin to enlarge, full screen -->
+          <button type="button" class="tile__menu-btn" aria-label="Tile options" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="19" r="1.7" />
+            </svg>
+          </button>
+          <div class="tile__menu" role="menu" hidden>
+            <button type="button" class="tile__menu-item" role="menuitem" data-action="pin">Pin to screen</button>
+            <button type="button" class="tile__menu-item" role="menuitem" data-action="fullscreen">Full screen</button>
+          </div>
+          <!-- shown only while this tile is pinned; click to unpin -->
+          <button type="button" class="tile__pin-badge" aria-label="Unpin" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <path d="M9 4h6l-1 5 3 3v2h-4v5l-1 1-1-1v-5H6v-2l3-3-1-5z" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
           <span class="tile__voice" aria-hidden="true">
             <span class="tile__voice-bars"><span></span><span></span><span></span></span>
             <svg class="tile__voice-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
@@ -383,6 +419,6 @@
     <div class="toast" id="toast"></div>
 
     <script src="assets/vendor/peerjs-1.5.4.min.js"></script>
-    <script type="module" src="assets/call.js?v=10"></script>
+    <script type="module" src="assets/call.js?v=11"></script>
   </body>
 </html>

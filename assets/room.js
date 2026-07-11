@@ -160,6 +160,12 @@ class Participant {
     this.avatar = tileEl.querySelector('.avatar');
     this.voice = tileEl.querySelector('.tile__voice'); // bottom-left chip: bars / muted mic
     this.tag = tileEl.querySelector('.tile__tag');
+    // per-tile ⋮ menu + pin affordances (wired in call.js; room.js only
+    // flips their pinned/label state from _layoutGrid)
+    this.menuBtn = tileEl.querySelector('.tile__menu-btn');
+    this.menu = tileEl.querySelector('.tile__menu');
+    this.pinBadge = tileEl.querySelector('.tile__pin-badge');
+    this.pinItem = tileEl.querySelector('.tile__menu-item[data-action="pin"]');
     this.avatarColor = null;
     this.state = { cam: true, mic: true, content: 'none' };
     this.meter = null;
@@ -244,6 +250,11 @@ export class Room extends EventTarget {
 
     // stand-in video track while the real camera is stopped — see setLocalCam
     this._placeholderVideo = null;
+
+    // peerId of the tile pinned to the big focus, or null. Purely local view
+    // state — never synced; anyone can pin whoever they like on their own
+    // screen (same philosophy as theater view).
+    this.pinnedPeerId = null;
 
     // Safari can reject autoplaying a remote <video> that has sound, with no
     // error surfaced — black tile AND silence. Any tap/click anywhere in the
@@ -779,18 +790,57 @@ export class Room extends EventTarget {
     this.dispatchEvent(new CustomEvent('participant-removed', { detail: { peerId, name } }));
   }
 
+  // Pinning is local-only view state: enlarge one participant into the big
+  // focus row, everyone else drops into the bottom strip. Toggling the tile
+  // that's already pinned clears it.
+  togglePin(peerId) {
+    this.pinnedPeerId = this.pinnedPeerId === peerId ? null : peerId;
+    this._layoutGrid();
+  }
+  unpin() {
+    if (!this.pinnedPeerId) return;
+    this.pinnedPeerId = null;
+    this._layoutGrid();
+  }
+
   _layoutGrid() {
-    const count = this.participants.size + 1; // + yourself
-    // data-count drives the wireframe layouts (1 centered / 2 side-by-side /
-    // 3 = two stacked left + one centered right / 4 = 2x2); --cols remains
-    // the fallback grid for larger calls. data-pos orders tiles with remote
-    // participants first and "You" last (the wireframes put you on the right).
-    this.stageEl.dataset.count = String(count);
-    this.stageEl.style.setProperty('--cols', String(columnsFor(count)));
+    const remotes = this.participants.size;
+    const total = remotes + 1; // + yourself
+    // Meet-style model: the moment a second person is in the room, the
+    // self-view floats as a picture-in-picture and the remote tiles get the
+    // whole stage. When you're alone it stays a normal in-grid tile (the
+    // wireframe "just you" arrangement).
+    const pip = remotes >= 1;
+
+    // drop a stale pin if that participant has left
+    if (this.pinnedPeerId && !this.participants.has(this.pinnedPeerId)) this.pinnedPeerId = null;
+    const pinned = this.pinnedPeerId;
+
+    this.stageEl.classList.toggle('stage--pip', pip);
+    this.localTileEl.classList.toggle('tile--pip', pip);
+    if (!pip) this.localTileEl.classList.remove('tile--min'); // nothing to minimize when it's not floating
+    this.stageEl.classList.toggle('stage--pinned', !!pinned);
+
+    // data-count/--cols now describe the REMOTE tiles in pip mode (self is out
+    // of the grid), or the total when you're alone. columnsFor gives 1 remote
+    // a full stage, 2 side-by-side, 3-4 a 2x2, 5+ a wrapping grid.
+    this.stageEl.dataset.count = String(pip ? remotes : total);
+    this.stageEl.style.setProperty('--cols', String(columnsFor(pip ? Math.max(remotes, 1) : total)));
+
     let pos = 1;
-    this.participants.forEach((p) => { p.tile.dataset.pos = String(pos); pos += 1; });
-    this.localTileEl.dataset.pos = String(pos);
-    this.dispatchEvent(new CustomEvent('grid-changed', { detail: { count, large: count > LARGE_CALL_THRESHOLD } }));
+    this.participants.forEach((p) => {
+      p.tile.dataset.pos = String(pos); pos += 1;
+      const isPinned = p.peerId === pinned;
+      p.tile.classList.toggle('tile--pinned', isPinned);
+      if (p.pinBadge) p.pinBadge.hidden = !isPinned;
+      if (p.pinItem) p.pinItem.textContent = isPinned ? 'Unpin' : 'Pin to screen';
+    });
+    this.localTileEl.dataset.pos = String(total);
+
+    // the bottom strip holds every remote EXCEPT the pinned one, one per column
+    if (pinned) this.stageEl.style.setProperty('--strip', String(Math.max(remotes - 1, 1)));
+
+    this.dispatchEvent(new CustomEvent('grid-changed', { detail: { count: total, large: total > LARGE_CALL_THRESHOLD } }));
   }
 
   // ---- lifecycle --------------------------------------------------------------

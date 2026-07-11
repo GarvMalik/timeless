@@ -296,6 +296,38 @@ itself can't find a path even with TURN available) — that's not a
 "reconnect," that's someone having left, and the existing participant-left
 handling covers it correctly.
 
+## In-call view model: tiles, self-view PiP, pinning
+
+The stage follows the phone-app convention (Google Meet mobile is the
+reference): the moment a second person is present, **your own tile stops being
+a grid cell and floats as a picture-in-picture** (`.tile--pip`, parked
+bottom-right), so the people you're actually looking at get the whole stage.
+`room.js`'s `_layoutGrid()` owns this — when there is ≥1 remote it flips the
+stage into `.stage--pip` mode and lays the *remote* tiles out on the plain
+`repeat(--cols)` grid (1 remote fills, 2 side-by-side, 3-4 a 2×2, 5+ wraps;
+everything collapses to a single vertical stack below the 860px breakpoint,
+matching the phone layout). When you're alone it stays the earlier "just you"
+in-grid arrangement.
+
+Two per-tile controls sit on top of this, both **local-only view state** — the
+same philosophy as theater view, never synced to anyone else:
+
+- **Pin** (`room.togglePin(peerId)`): promotes one tile to a big focus row
+  with everyone else dropped into a bottom strip (`.stage--pinned`, the pinned
+  tile spanning the top row, `--strip` = the number of remaining remotes). A
+  stale pin (the pinned person left) is dropped inside `_layoutGrid`.
+- **Per-tile ⋮ menu**: pin/unpin and full screen on a remote tile; full screen
+  and "minimize" on your own PiP (minimize collapses it to a small chip with a
+  restore control). Wired by delegation on the stage in `call.js` so it covers
+  tiles cloned in later, dismissed on outside-click or Esc.
+
+One CSS footgun worth recording: the restore control's visibility is driven by
+the `.tile--min` class, **not** a `hidden` attribute — Chromium's UA
+`[hidden] { display: none }` rule is `!important` and would beat a class-based
+`display` override. Anything that needs a class to un-hide it must not also
+carry `hidden` (the ⋮ menus and pin badge sidestep this by toggling the
+`hidden` *property* from JS instead).
+
 ## Known limitations
 
 - **New joins depend on the host staying reachable.** If the host's tab
@@ -314,3 +346,12 @@ handling covers it correctly.
   connection is fully and permanently gone — the other side actually closed,
   or no path exists even via TURN — there's no automatic session resume;
   that participant needs to rejoin.
+- **No AI transcription, summaries, translation, or captions — deliberately.**
+  These were requested and declined on purpose: every one of them requires
+  streaming call audio to a cloud speech/LLM service (even browser
+  speech-to-text routes audio to a vendor) plus a paid backend to hold the API
+  key. That is exactly the middlebox the whole "why mesh, not an SFU" decision
+  exists to avoid — adding it would quietly break the app's core promise that
+  nothing leaves the participants' browsers. If it's ever added it must be an
+  explicit, opt-in, clearly-labelled departure from that promise, not a silent
+  feature bolt-on.
