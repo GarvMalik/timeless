@@ -1144,21 +1144,39 @@ img, video { display: block; max-width: 100%; }
    column vertically centered against it — so you get a genuinely big look
    at your face and background before entering. Below 861px it falls back
    to the stacked single-column flow above. */
-.card--preview { width: min(64rem, 100%); }
+.card--preview { width: min(70rem, 100%); }
 @media (min-width: 861px) {
-  .card--preview #stepPreview:not([hidden]) {
-    flex-direction: row;
-    align-items: center;
-    gap: clamp(1.5rem, 3vw, 2.75rem);
+  /* Desktop "Ready to open?" (wireframe image1): a genuine two-column layout —
+     a big camera filling the whole LEFT side, and the eyebrow + heading + copy
+     + actions stacked down the RIGHT. stepPreview uses display:contents so its
+     camera/actions become direct grid items alongside the card header, letting
+     the camera span the full card height in column 1. */
+  .card--preview {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: clamp(1.75rem, 3.5vw, 3rem);
+    align-items: start;
+    min-height: min(66vh, 38rem);
   }
+  .card--preview > #stepPreview:not([hidden]) { display: contents; }
+  .card--preview .card__eyebrow { grid-column: 2; grid-row: 1; text-align: right; margin-bottom: 0; }
+  .card--preview #lobbyTitle { grid-column: 2; grid-row: 2; }
+  .card--preview #lobbySub { grid-column: 2; grid-row: 3; }
+  .card--preview #lobbyNotice { grid-column: 2; }
   .card--preview .preview-tile {
-    flex: 1.7 1 0%;
-    height: min(48vh, 30rem);
+    grid-column: 1;
+    grid-row: 1 / -1; /* span every row = the full height of the card */
+    height: auto;
     max-height: none;
+    min-height: 0;
     margin-bottom: 0;
+    align-self: stretch;
   }
   .card--preview .preview-actions {
-    flex: 1 1 0%;
+    grid-column: 2;
+    grid-row: 4;
+    align-self: stretch;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1580,4 +1598,13 @@ img, video { display: block; max-width: 100%; }
   #chatBtn { display: none; }
   .ctrl--end { padding: 0 0.9rem; font-size: 0; gap: 0; }
   .ctrl--end svg { width: 1.3rem; height: 1.3rem; }
+
+  /* Mobile "Ready to open?" (wireframe image11): drop the verbose descriptive
+     line under the heading, let the card fill the height, and let the camera
+     grow to take the majority of the screen — which naturally pins the CTA to
+     the bottom. The short previewSub ("Just you so far…") stays. */
+  .card--preview { margin: 0; height: 100%; }
+  .card--preview #lobbySub { display: none; }
+  .card--preview > #stepPreview:not([hidden]) { flex: 1 1 auto; }
+  .card--preview .preview-tile { max-height: none; height: auto; }
 }
