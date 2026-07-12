@@ -1467,46 +1467,46 @@ img, video { display: block; max-width: 100%; }
    below remain; nothing here touches --bg/--surface/--ink anymore.
    ========================================================================= */
 
-/* ---- the toolbar's dark treatment applies to the CENTER PILL only — the
-   left/right utility clusters sit on the page background and keep the
-   standard light circular-button look (the wireframes' three-cluster bar) */
+/* ---- the control pill is a soft LIGHT-grey capsule floating over the call
+   surface — matching the wireframes and the reference dock, not the earlier
+   dark treatment. Warm neutral fill, dark icons, a minimal (not heavy-black)
+   drop shadow. The left/right utility clusters sit on the page background as
+   plain light circles (the desktop three-cluster bar). */
 .room--live .dock__pill {
-  padding: 0.5rem 0.6rem;
+  padding: 0.4rem 0.5rem;
   border-radius: 999px;
-  background: rgba(13, 11, 6, 0.72);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.45),
-    0 2px 10px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  gap: 0.25rem;
+  background: #ece8e2; /* fallback for no color-mix */
+  background: color-mix(in srgb, var(--ink) 8%, var(--bg));
+  border: 1px solid rgba(49, 47, 45, 0.06);
+  box-shadow: 0 4px 14px rgba(49, 47, 45, 0.1); /* minimal, warm — not the old black hue */
+  gap: 0.2rem;
 }
 .room--live .dock__pill .ctrl {
   background: transparent;
   border-color: transparent;
-  color: rgba(245, 242, 236, 0.86);
+  color: var(--ink);
 }
 .room--live .dock__pill .ctrl:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: rgba(49, 47, 45, 0.08);
+  color: var(--ink);
   border-color: transparent;
 }
 .room--live .dock__pill .ctrl[aria-pressed='true'] {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background: rgba(49, 47, 45, 0.1);
+  color: var(--ink);
   border-color: transparent;
 }
-/* muted/off reads as a warm-red tint, matching the leave button's red —
-   same semantic language as the light theme, re-tuned for a dark bar */
+/* muted mic / camera off reads as a soft red circle (off = red), matching the
+   Leave button and the reference dock's red mic */
 .room--live #micBtn[aria-pressed='true'],
 .room--live #camBtn[aria-pressed='true'] {
-  background: rgba(225, 37, 46, 0.22);
-  color: #ffb3ae;
+  background: #f6d9d6; /* fallback */
+  background: color-mix(in srgb, var(--red) 22%, var(--bg));
+  color: var(--red);
 }
-.room--live .dock__pill .ctrl__label { background: rgba(255, 255, 255, 0.95); color: #17130c; }
-.room--live .dock__pill .ctrl:disabled { opacity: 0.32; }
-.room--live .dock__pill .ctrl:disabled:hover { background: transparent; color: rgba(245, 242, 236, 0.86); }
+.room--live .dock__pill .ctrl__label { background: var(--ink); color: var(--bg); }
+.room--live .dock__pill .ctrl:disabled { opacity: 0.4; }
+.room--live .dock__pill .ctrl:disabled:hover { background: transparent; color: var(--ink); }
 /* the pill's transparent-ctrl override outranks .ctrl--end's own background
    (three classes vs one), so the Leave button's red fill must be re-asserted
    at matching specificity — same bug class as before, kept fixed */
@@ -1612,14 +1612,39 @@ img, video { display: block; max-width: 100%; }
   }
   .chat.show { width: auto; margin: var(--chat-gap); }
 
-  /* dock: one unbroken row (spec: "absolutely no stacked/multi-row controls").
-     Chat gets folded into Extras → Message on phones, and Leave goes icon-only
-     to buy back the width (wireframes image2/7/13). */
-  .dock { display: flex; flex-wrap: nowrap; justify-content: center; gap: 0.4rem; padding: 0 var(--s2) calc(var(--s2) + 0.25rem); }
-  .dock__pill { gap: 0.15rem; padding: 0.4rem; }
-  .ctrl { width: 3rem; height: 3rem; }
-  #chatBtn { display: none; }
-  .ctrl--end { padding: 0 0.9rem; font-size: 0; gap: 0; }
+  /* dock: ONE unified light pill (reference dock + wireframes image2/7/13).
+     .dock itself becomes the capsule; the wrapper clusters flatten with
+     display:contents so every control sits directly inside it. The redundant
+     link button is dropped (it's in Extras → Share the link) and ⋮ moves into
+     the pill just before Leave (which stays a red icon-only pill, ordered
+     last). No heavy shadow. */
+  .dock {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.15rem;
+    width: max-content;
+    max-width: calc(100vw - 2 * var(--s2));
+    margin: 0 auto calc(var(--s2) + 0.2rem);
+    padding: 0.4rem 0.5rem;
+  }
+  .room--live .dock {
+    background: #ece8e2; /* fallback */
+    background: color-mix(in srgb, var(--ink) 8%, var(--bg));
+    border: 1px solid rgba(49, 47, 45, 0.06);
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(49, 47, 45, 0.1);
+  }
+  .dock__pill, .dock__side { display: contents; } /* flatten every control into .dock */
+  #detailsBtn, #chatBtn { display: none; } /* link + chat live in the ⋮ Extras sheet */
+  /* ⋮ sits OUTSIDE .dock__pill, so it misses the pill's transparent-icon
+     treatment — give the same borderless look to utility buttons in the pill */
+  .room--live .dock .ctrl--utility { background: transparent; border-color: transparent; color: var(--ink); }
+  .room--live .dock .ctrl--utility:hover { background: rgba(49, 47, 45, 0.08); color: var(--ink); }
+  .ctrl { width: 2.9rem; height: 2.9rem; }
+  #endBtn { order: 1; } /* Leave sits last, after the ⋮ */
+  .ctrl--end { padding: 0 0.85rem; font-size: 0; gap: 0; }
   .ctrl--end svg { width: 1.3rem; height: 1.3rem; }
 
   /* Mobile "Ready to open?" (wireframe image11): drop the verbose descriptive
