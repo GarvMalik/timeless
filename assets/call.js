@@ -7,10 +7,10 @@
    See ARCHITECTURE.md for the full protocol this orchestrates.
    ========================================================================= */
 
-import { Room, isValidCode } from './room.js?v=11';
-import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=11';
-import { initChat } from './chat.js?v=11';
-import { initTheater } from './theater.js?v=11';
+import { Room, isValidCode } from './room.js?v=12';
+import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=12';
+import { initChat } from './chat.js?v=12';
+import { initTheater } from './theater.js?v=12';
 
 const $ = (id) => document.getElementById(id);
 
@@ -597,7 +597,13 @@ statusEl.addEventListener('click', () => {
   }
 });
 detailsBtn.addEventListener('click', () => togglePopover(detailsPop, detailsBtn));
-moreBtn.addEventListener('click', () => togglePopover(morePop, moreBtn));
+// On phones the dock's More opens the "Extras" bottom sheet instead of the
+// desktop popover (wireframe image13); above 860px it stays the popover.
+const isPhone = () => window.matchMedia('(max-width: 860px)').matches;
+moreBtn.addEventListener('click', () => {
+  if (isPhone()) { openExtras(); return; }
+  togglePopover(morePop, moreBtn);
+});
 peopleClose.addEventListener('click', () => closePopovers(null));
 detailsClose.addEventListener('click', () => closePopovers(null));
 
@@ -606,7 +612,36 @@ document.addEventListener('click', (e) => {
   if (!inside) closePopovers(null);
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closePopovers(null);
+  if (e.key === 'Escape') { closePopovers(null); closeExtras(); }
+});
+
+// ---- Extras bottom sheet (phones): Share the link / Message / Who in call --
+const extrasSheet = $('extrasSheet');
+const extrasClose = $('extrasClose');
+const extrasShare = $('extrasShare');
+const extrasMessage = $('extrasMessage');
+const extrasPeople = $('extrasPeople');
+
+function openExtras() {
+  closePopovers(null);
+  extrasSheet.hidden = false;
+  moreBtn.setAttribute('aria-expanded', 'true');
+}
+function closeExtras() {
+  if (extrasSheet.hidden) return;
+  extrasSheet.hidden = true;
+  moreBtn.setAttribute('aria-expanded', 'false');
+}
+extrasClose.addEventListener('click', closeExtras);
+extrasSheet.addEventListener('click', (e) => { if (e.target === extrasSheet) closeExtras(); }); // tap the scrim
+// stopPropagation so the document-level outside-click handler doesn't fire on
+// this same bubbling click and immediately re-close what we just opened
+extrasShare.addEventListener('click', (e) => { e.stopPropagation(); closeExtras(); doCopy(); });
+extrasMessage.addEventListener('click', (e) => { e.stopPropagation(); closeExtras(); chat.open(); });
+extrasPeople.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeExtras();
+  if (togglePopover(peoplePop, statusEl)) { peopleSearch.value = ''; renderPeople(); }
 });
 
 // ---- People list (wireframe: count header, search, one row per person) ---

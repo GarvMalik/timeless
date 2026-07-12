@@ -745,19 +745,31 @@ img, video { display: block; max-width: 100%; }
 .tile--min .tile__restore { display: flex; }
 .tile__restore svg { width: 1.15rem; height: 1.15rem; }
 
-/* --- pinned: one big focus tile on top, the rest as a bottom strip --------- */
+/* --- single pin: a big focus tile on the LEFT, everyone else in a slim
+   right-hand column (wireframe image6). The pinned tile spans every column
+   row; --col-rows (set by room.js) = the number of non-pinned remotes so
+   `grid-row: 1 / -1` has explicit rows to span. --------------------------- */
 .stage.stage--pinned {
-  grid-template-columns: repeat(var(--strip, 1), minmax(0, 1fr));
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 3.2fr) minmax(0, 1fr);
+  grid-template-rows: repeat(var(--col-rows, 1), minmax(0, 1fr));
 }
 .stage.stage--pinned .tile--pinned {
-  grid-column: 1 / -1;
-  grid-row: 1;
+  grid-column: 1;
+  grid-row: 1 / -1;
 }
 .stage.stage--pinned .tile:not(.tile--pinned):not(.tile--pip) {
-  grid-row: 2;
-  height: clamp(4.5rem, 13vh, 7.5rem);
+  grid-column: 2;
 }
+
+/* --- dual pin: an exact 50/50 split (wireframe image8). Only the two pinned
+   tiles show; other remotes hide until one is unpinned. The self-view PiP
+   still floats on top. ----------------------------------------------------- */
+.stage.stage--pinned2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+}
+.stage.stage--pinned2 .tile--pinned { grid-row: 1; }
+.stage.stage--pinned2 .tile:not(.tile--pinned):not(.tile--pip) { display: none; }
 .tile__pin-badge {
   position: absolute;
   top: 0.6rem; left: 0.6rem;
@@ -826,6 +838,63 @@ img, video { display: block; max-width: 100%; }
 /* the PiP self-view is small — anchor its menu to the LEFT so it doesn't spill
    off the stage edge */
 .tile--pip .tile__menu { right: auto; left: 0.6rem; top: auto; bottom: 2.7rem; }
+
+/* --- mobile "Extras" bottom sheet (wireframe image13) --------------------
+   A scrim + bottom-anchored card. Opened only on phones (the dock's More
+   routes here below 860px; the desktop More popover is used above it). */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--s2);
+  background: rgba(20, 17, 9, 0.32);
+}
+.sheet__card {
+  width: 100%;
+  max-width: 34rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: 0 -12px 44px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.1rem 0.75rem;
+}
+.sheet__title { font-family: var(--serif); font-size: var(--fs-md); font-weight: 600; color: var(--ink); }
+.sheet__close {
+  border: none;
+  background: transparent;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--ink-2);
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+.sheet__item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.1rem 1.1rem;
+  border: none;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--fs-body);
+  text-align: left;
+  cursor: pointer;
+}
+.sheet__item:active { background: var(--surface); }
+.sheet__item svg { width: 1.3rem; height: 1.3rem; flex: none; }
+
 .stage__empty {
   position: absolute;
   inset: 0;
@@ -1453,16 +1522,42 @@ img, video { display: block; max-width: 100%; }
   .knock-panel { top: auto; bottom: 6rem; right: var(--s2); left: var(--s2); width: auto; }
   .music-pill { display: none !important; }
 
-  /* stage: every count collapses to a single stacked column (matching the
-     phone reference: remotes stacked vertically, self floating over them) —
-     but NOT when pinned, where the big-focus-plus-strip grid must survive */
-  .stage:not(.stage--pinned) { grid-template-columns: 1fr !important; padding: var(--s2); }
-  .stage:not(.stage--pinned) .tile[data-pos]:not(.tile--pip) {
+  /* stage on a phone (wireframes image2/7/9/10): a 2-column grid capped at
+     two columns, with the self-view floating over it. 1 remote fills, 2 stack
+     vertically, 3+ form the 2-up grid. Pinned modes are handled separately
+     below. --edge padding tightens to fit portrait. */
+  .stage { padding: var(--s2); }
+  .stage:not(.stage--pinned):not(.stage--pinned2) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-rows: minmax(0, 1fr);
+  }
+  /* 1 or 2 remotes: single stacked column (matches the phone reference) */
+  .stage:not(.stage--pinned):not(.stage--pinned2)[data-count='1'],
+  .stage:not(.stage--pinned):not(.stage--pinned2)[data-count='2'] {
+    grid-template-columns: 1fr !important;
+  }
+  /* neutralise the desktop wireframe tile placements on phones */
+  .stage:not(.stage--pinned):not(.stage--pinned2) .tile[data-pos]:not(.tile--pip) {
     grid-column: auto !important;
     grid-row: auto !important;
     align-self: stretch !important;
     height: auto !important;
   }
+
+  /* pin on a phone: a left+right column is too cramped, so spotlight instead —
+     single pin fills the stage (others hidden); dual pin stacks the two 50/50
+     vertically rather than side-by-side. */
+  .stage.stage--pinned {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .stage.stage--pinned .tile--pinned { grid-column: 1; grid-row: 1; }
+  .stage.stage--pinned .tile:not(.tile--pinned):not(.tile--pip) { display: none; }
+  .stage.stage--pinned2 {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+
   /* the floating self-view sits a touch tighter into the corner on phones
      (.tile.tile--pip to match the base rule's specificity — see above) */
   .tile.tile--pip { right: var(--s2); bottom: calc(var(--s2) + 0.25rem); }
@@ -1476,6 +1571,13 @@ img, video { display: block; max-width: 100%; }
     border-left: none;
   }
 
-  /* dock: the three clusters wrap into a centered row */
-  .dock { display: flex; flex-wrap: wrap; justify-content: center; }
+  /* dock: one unbroken row (spec: "absolutely no stacked/multi-row controls").
+     Chat gets folded into Extras → Message on phones, and Leave goes icon-only
+     to buy back the width (wireframes image2/7/13). */
+  .dock { display: flex; flex-wrap: nowrap; justify-content: center; gap: 0.4rem; padding: 0 var(--s2) calc(var(--s2) + 0.25rem); }
+  .dock__pill { gap: 0.15rem; padding: 0.4rem; }
+  .ctrl { width: 3rem; height: 3rem; }
+  #chatBtn { display: none; }
+  .ctrl--end { padding: 0 0.9rem; font-size: 0; gap: 0; }
+  .ctrl--end svg { width: 1.3rem; height: 1.3rem; }
 }

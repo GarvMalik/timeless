@@ -304,22 +304,32 @@ a grid cell and floats as a picture-in-picture** (`.tile--pip`, parked
 bottom-right), so the people you're actually looking at get the whole stage.
 `room.js`'s `_layoutGrid()` owns this — when there is ≥1 remote it flips the
 stage into `.stage--pip` mode and lays the *remote* tiles out on the plain
-`repeat(--cols)` grid (1 remote fills, 2 side-by-side, 3-4 a 2×2, 5+ wraps;
-everything collapses to a single vertical stack below the 860px breakpoint,
-matching the phone layout). When you're alone it stays the earlier "just you"
-in-grid arrangement.
+`repeat(--cols)` grid (1 remote fills, 2 side-by-side, 3-4 a 2×2, 5+ wraps).
+Below the 860px breakpoint the grid is capped at two columns to match the phone
+wireframes: 1 remote fills, 2 stack vertically, 3+ form the 2-up grid, with the
+self-view PiP tucked into the bottom-right. When you're alone it stays the
+earlier "just you" in-grid arrangement.
 
-Two per-tile controls sit on top of this, both **local-only view state** — the
-same philosophy as theater view, never synced to anyone else:
+Controls on top of this are all **local-only view state** — the same philosophy
+as theater view, never synced to anyone else:
 
-- **Pin** (`room.togglePin(peerId)`): promotes one tile to a big focus row
-  with everyone else dropped into a bottom strip (`.stage--pinned`, the pinned
-  tile spanning the top row, `--strip` = the number of remaining remotes). A
-  stale pin (the pinned person left) is dropped inside `_layoutGrid`.
+- **Pin** (`room.togglePin(peerId)`, up to two): one pin gives that tile a big
+  focus on the **left** with everyone else in a slim right-hand column
+  (`.stage--pinned`; `--col-rows` sizes the column so the focus tile can span
+  it). A **second** pin switches to an exact **50/50 split** (`.stage--pinned2`)
+  and hides the un-pinned remotes until one is released. A third pin drops the
+  oldest (FIFO). On phones both collapse to a spotlight (single fills; dual
+  stacks vertically). Stale pins (that participant left) are filtered inside
+  `_layoutGrid`.
 - **Per-tile ⋮ menu**: pin/unpin and full screen on a remote tile; full screen
   and "minimize" on your own PiP (minimize collapses it to a small chip with a
   restore control). Wired by delegation on the stage in `call.js` so it covers
   tiles cloned in later, dismissed on outside-click or Esc.
+- **Extras sheet (phones)**: below 860px the dock's ⋮ opens a bottom sheet
+  (Share the link / Message / Who in the call) instead of the desktop popover,
+  and the standalone chat button folds into it — keeping the control bar to the
+  single unbroken row the wireframes call for. Above 860px the ⋮ is the usual
+  anchored popover.
 
 One CSS footgun worth recording: the restore control's visibility is driven by
 the `.tile--min` class, **not** a `hidden` attribute — Chromium's UA

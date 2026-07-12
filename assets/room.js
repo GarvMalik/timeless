@@ -251,10 +251,11 @@ export class Room extends EventTarget {
     // stand-in video track while the real camera is stopped — see setLocalCam
     this._placeholderVideo = null;
 
-    // peerId of the tile pinned to the big focus, or null. Purely local view
-    // state — never synced; anyone can pin whoever they like on their own
-    // screen (same philosophy as theater view).
-    this.pinnedPeerId = null;
+    // peerIds pinned to the focus (0, 1, or 2). Purely local view state —
+    // never synced; anyone can pin whoever they like on their own screen
+    // (same philosophy as theater view). One pin = left-focus + right column;
+    // two = 50/50 split.
+    this.pinnedPeerIds = [];
 
     // Safari can reject autoplaying a remote <video> that has sound, with no
     // error surfaced — black tile AND silence. Any tap/click anywhere in the
@@ -793,13 +794,23 @@ export class Room extends EventTarget {
   // Pinning is local-only view state: enlarge one participant into the big
   // focus row, everyone else drops into the bottom strip. Toggling the tile
   // that's already pinned clears it.
+  // Up to TWO tiles can be pinned. One pin = a big focus on the left with the
+  // rest in a right-hand column; two pins = a 50/50 split (the other tiles
+  // hide while split, matching the wireframe). A third pin drops the oldest
+  // (FIFO). Toggling a pinned tile unpins it.
   togglePin(peerId) {
-    this.pinnedPeerId = this.pinnedPeerId === peerId ? null : peerId;
+    const i = this.pinnedPeerIds.indexOf(peerId);
+    if (i !== -1) {
+      this.pinnedPeerIds.splice(i, 1);
+    } else {
+      this.pinnedPeerIds.push(peerId);
+      if (this.pinnedPeerIds.length > 2) this.pinnedPeerIds.shift();
+    }
     this._layoutGrid();
   }
   unpin() {
-    if (!this.pinnedPeerId) return;
-    this.pinnedPeerId = null;
+    if (!this.pinnedPeerIds.length) return;
+    this.pinnedPeerIds = [];
     this._layoutGrid();
   }
 
@@ -812,14 +823,16 @@ export class Room extends EventTarget {
     // wireframe "just you" arrangement).
     const pip = remotes >= 1;
 
-    // drop a stale pin if that participant has left
-    if (this.pinnedPeerId && !this.participants.has(this.pinnedPeerId)) this.pinnedPeerId = null;
-    const pinned = this.pinnedPeerId;
+    // drop any pins whose participant has left
+    this.pinnedPeerIds = this.pinnedPeerIds.filter((id) => this.participants.has(id));
+    const pinCount = this.pinnedPeerIds.length;
 
     this.stageEl.classList.toggle('stage--pip', pip);
     this.localTileEl.classList.toggle('tile--pip', pip);
     if (!pip) this.localTileEl.classList.remove('tile--min'); // nothing to minimize when it's not floating
-    this.stageEl.classList.toggle('stage--pinned', !!pinned);
+    // one pin => left-focus + right column; two pins => 50/50 split
+    this.stageEl.classList.toggle('stage--pinned', pinCount === 1);
+    this.stageEl.classList.toggle('stage--pinned2', pinCount === 2);
 
     // data-count/--cols now describe the REMOTE tiles in pip mode (self is out
     // of the grid), or the total when you're alone. columnsFor gives 1 remote
@@ -830,15 +843,16 @@ export class Room extends EventTarget {
     let pos = 1;
     this.participants.forEach((p) => {
       p.tile.dataset.pos = String(pos); pos += 1;
-      const isPinned = p.peerId === pinned;
+      const isPinned = this.pinnedPeerIds.includes(p.peerId);
       p.tile.classList.toggle('tile--pinned', isPinned);
       if (p.pinBadge) p.pinBadge.hidden = !isPinned;
       if (p.pinItem) p.pinItem.textContent = isPinned ? 'Unpin' : 'Pin to screen';
     });
     this.localTileEl.dataset.pos = String(total);
 
-    // the bottom strip holds every remote EXCEPT the pinned one, one per column
-    if (pinned) this.stageEl.style.setProperty('--strip', String(Math.max(remotes - 1, 1)));
+    // single-pin: the right-hand column has one row per non-pinned remote, and
+    // the pinned tile spans all of them (grid-row: 1 / -1 needs explicit rows)
+    if (pinCount === 1) this.stageEl.style.setProperty('--col-rows', String(Math.max(remotes - 1, 1)));
 
     this.dispatchEvent(new CustomEvent('grid-changed', { detail: { count: total, large: total > LARGE_CALL_THRESHOLD } }));
   }
