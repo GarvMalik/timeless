@@ -7,10 +7,10 @@
    See ARCHITECTURE.md for the full protocol this orchestrates.
    ========================================================================= */
 
-import { Room, isValidCode } from './room.js?v=15';
-import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=15';
-import { initChat } from './chat.js?v=15';
-import { initTheater } from './theater.js?v=15';
+import { Room, isValidCode } from './room.js?v=16';
+import { ContentShare, isDisplayCaptureSupported } from './content-share.js?v=16';
+import { initChat } from './chat.js?v=16';
+import { initTheater } from './theater.js?v=16';
 
 const $ = (id) => document.getElementById(id);
 
