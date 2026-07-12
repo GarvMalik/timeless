@@ -1308,31 +1308,51 @@ img, video { display: block; max-width: 100%; }
    the contents fade in instead, which is compositor-safe. Inner sections
    keep a fixed width so nothing squishes. */
 .chat {
-  --chat-w: min(23rem, 34vw);
+  --chat-w: min(24rem, 34vw);
+  --chat-gap: clamp(0.6rem, 1.3vw, 1rem);
   position: relative;
   width: 0;
   min-width: 0;
+  margin: 0; /* no space claimed while closed — the margin is added on .show */
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border-left: 1px solid var(--line);
   visibility: hidden;
+  /* a floating, tinted card that reads as its own surface (wireframe image12):
+     lilac is one of our pastels, softened against the warm page white so it
+     belongs to the design system rather than the mockup's flat lavender. */
+  background: #f6edf2; /* fallback for browsers without color-mix (older Safari) */
+  background: color-mix(in srgb, var(--lilac) 52%, var(--bg));
+  border: 1px solid #c4b8c1;
+  border: 1px solid color-mix(in srgb, var(--lilac) 78%, var(--ink));
+  border-radius: var(--r-lg);
+  box-shadow: 0 20px 50px rgba(49, 47, 45, 0.12);
 }
-.chat > * { width: var(--chat-w); opacity: 0; transition: opacity 0.3s var(--ease); }
-.chat.show { width: var(--chat-w); visibility: visible; }
+/* the width change is instant (NOT transitioned — an animation-throttled tab
+   can freeze a width transition mid-flight, see the .card note), so sections
+   can just be 100%-wide and fade in; nothing squishes during an instant jump */
+.chat > * { width: 100%; box-sizing: border-box; opacity: 0; transition: opacity 0.3s var(--ease); }
+.chat.show { width: var(--chat-w); margin: var(--chat-gap) var(--chat-gap) var(--chat-gap) 0; visibility: visible; }
 .chat.show > * { opacity: 1; }
 .chat__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.1rem 1.2rem;
-  border-bottom: 1px solid var(--line);
+  padding: 1.15rem 1.25rem 0.9rem;
+  border-bottom: 1px solid #b5aab2;
+  border-bottom: 1px solid color-mix(in srgb, var(--lilac) 70%, var(--ink));
+}
+.chat__title {
+  font-family: var(--serif);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 .chat__close {
   background: none;
   border: none;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   line-height: 1;
   color: var(--ink-2);
   cursor: pointer;
@@ -1342,42 +1362,41 @@ img, video { display: block; max-width: 100%; }
 .chat__list {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem 1.2rem;
+  padding: 1rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 1rem;
 }
-.msg { max-width: 90%; }
-.msg__meta { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.2rem; }
-.msg__name { font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+.msg { max-width: 92%; }
+.msg__meta { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.25rem; }
+.msg__name { font-size: var(--fs-sm); font-weight: 600; color: var(--green); } /* wireframe: sender name in green */
 .msg__time { font-size: var(--fs-label); color: var(--ink-3); }
-.msg__text { font-size: var(--fs-sm); color: var(--ink); line-height: 1.5; overflow-wrap: anywhere; }
-.msg--me .msg__name { color: var(--green); }
+.msg__text { font-size: var(--fs-sm); font-weight: 500; color: var(--ink); line-height: 1.5; overflow-wrap: anywhere; }
 .msg--system { text-align: center; max-width: 100%; }
-.msg--system .msg__text { color: var(--ink-3); font-size: var(--fs-label); letter-spacing: 0.04em; text-transform: uppercase; }
+.msg--system .msg__text { color: var(--ink-3); font-weight: 400; font-size: var(--fs-label); letter-spacing: 0.04em; text-transform: uppercase; }
 .chat__form {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 1rem 1.2rem;
-  border-top: 1px solid var(--line);
+  padding: 0.9rem 1.25rem 1.1rem;
 }
 .chat__form input {
   flex: 1;
   min-width: 0;
   font-family: var(--sans);
   font-size: var(--fs-sm);
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--line);
+  padding: 0.85rem 1.1rem;
+  border: 1px solid transparent;
   border-radius: var(--r-pill);
-  background: var(--bg);
+  background: var(--bg); /* white pill against the lilac card */
   color: var(--ink);
+  box-shadow: 0 1px 3px rgba(49, 47, 45, 0.08);
   transition: border-color var(--dur) var(--ease);
 }
 .chat__form input:focus { outline: none; border-color: var(--green); }
 .chat__form button {
   flex-shrink: 0;
-  width: 2.6rem; height: 2.6rem;
+  width: 2.9rem; height: 2.9rem;
   border-radius: 50%;
   border: none;
   background: var(--green);
@@ -1386,10 +1405,11 @@ img, video { display: block; max-width: 100%; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background var(--dur) var(--ease);
+  transition: background var(--dur) var(--ease), transform 0.15s var(--ease);
 }
 .chat__form button:hover { background: var(--green-600); }
-.chat__form button svg { width: 1.05rem; height: 1.05rem; }
+.chat__form button:active { transform: scale(0.94); }
+.chat__form button svg { width: 1.1rem; height: 1.1rem; }
 
 /* =========================================================================
    Theater / focus view — local UI only, hides tiles/dock/chat, blows up the
@@ -1580,14 +1600,17 @@ img, video { display: block; max-width: 100%; }
      (.tile.tile--pip to match the base rule's specificity — see above) */
   .tile.tile--pip { right: var(--s2); bottom: calc(var(--s2) + 0.25rem); }
 
-  /* chat: back to a full-width overlay — there's no room to squeeze */
+  /* chat: a full-screen floating card (wireframe image5) — there's no room to
+     squeeze it beside the stage, so it overlays, but keeps the tinted-card
+     look with a small inset all round rather than going flat edge-to-edge */
   .chat {
-    --chat-w: 100vw;
     position: fixed;
-    inset: 0 0 0 auto;
+    inset: 0;
+    width: auto;
+    margin: var(--chat-gap);
     z-index: 55;
-    border-left: none;
   }
+  .chat.show { width: auto; margin: var(--chat-gap); }
 
   /* dock: one unbroken row (spec: "absolutely no stacked/multi-row controls").
      Chat gets folded into Extras → Message on phones, and Leave goes icon-only
